@@ -1,0 +1,299 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<leadtools_form_processing_fields>
+   <pages>
+      <page number="1" dpix="300" dpiy="300">
+         <fields>
+            <field type="Leadtools.Forms.Processing.TextFormField, Leadtools.Forms.Processing, Version=20.0.4.0, Culture=neutral, PublicKeyToken=9cf889f53ea9b907">
+               <values>
+                  <value name="E1aText" />
+                  <value bounds="1062, 859, 1465, 927" />
+                  <value dropOut="None" />
+                  <value regex_pattern="" />
+                  <value ocr_text_type="FlowText" />
+                  <value enable_icr="False" />
+                  <value enable_ocr="True" />
+                  <value text_field_type="Character" />
+               </values>
+            </field>
+            <field type="Leadtools.Forms.Processing.OmrFormField, Leadtools.Forms.Processing, Version=20.0.4.0, Culture=neutral, PublicKeyToken=9cf889f53ea9b907">
+               <values>
+                  <value name="E1aFt" />
+                  <value bounds="1504, 903, 1532, 931" />
+                  <value dropOut="None" />
+                  <value frame_method="Auto" />
+                  <value sensitivity="Highest" />
+                  <value use_field_settings="False" />
+               </values>
+            </field>
+            <field type="Leadtools.Forms.Processing.OmrFormField, Leadtools.Forms.Processing, Version=20.0.4.0, Culture=neutral, PublicKeyToken=9cf889f53ea9b907">
+               <values>
+                  <value name="E1aM" />
+                  <value bounds="1651, 903, 1681, 931" />
+                  <value dropOut="None" />
+                  <value frame_method="Auto" />
+                  <value sensitivity="Highest" />
+                  <value use_field_settings="False" />
+               </values>
+            </field>
+            <field type="Leadtools.Forms.Processing.OmrFormField, Leadtools.Forms.Processing, Version=20.0.4.0, Culture=neutral, PublicKeyToken=9cf889f53ea9b907">
+               <values>
+                  <value name="E1aAbove" />
+                  <value bounds="1868, 903, 1903, 931" />
+                  <value dropOut="None" />
+                  <value frame_method="Auto" />
+                  <value sensitivity="Highest" />
+                  <value use_field_settings="False" />
+               </values>
+            </field>
+            <field type="Leadtools.Forms.Processing.OmrFormField, Leadtools.Forms.Processing, Version=20.0.4.0, Culture=neutral, PublicKeyToken=9cf889f53ea9b907">
+               <values>
+                  <value name="E1aBelow" />
+                  <value bounds="2093, 903, 2122, 931" />
+                  <value dropOut="None" />
+                  <value frame_method="Auto" />
+                  <value sensitivity="Highest" />
+                  <value use_field_settings="False" />
+               </values>
+            </field>
+            <field type="Leadtools.Forms.Processing.TextFormField, Leadtools.Forms.Processing, Version=20.0.4.0, Culture=neutral, PublicKeyToken=9cf889f53ea9b907">
+               <values>
+                  <value name="E1bText" />
+                  <value bounds="1064, 960, 1465, 1025" />
+                  <value dropOut="None" />
+                  <value regex_pattern="" />
+                  <value ocr_text_type="FlowText" />
+                  <value enable_icr="False" />
+                  <value enable_ocr="True" />
+                  <value text_field_type="Character" />
+               </values>
+            </field>
+            <field type="Leadtools.Forms.Processing.OmrFormField, Leadtools.Forms.Processing, Version=20.0.4.0, Culture=neutral, PublicKeyToken=9cf889f53ea9b907">
+               <values>
+                  <value name="E1bFt" />
+                  <value bounds="1502, 997, 1534, 1026" />
+                  <value dropOut="None" />
+                  <value frame_method="Auto" />
+                  <value sensitivity="Highest" />
+                  <value use_field_settings="False" />
+               </values>
+            </field>
+            <field type="Leadtools.Forms.Processing.OmrFormField, Leadtools.Forms.Processing, Version=20.0.4.0, Culture=neutral, PublicKeyToken=9cf889f53ea9b907">
+               <values>
+                  <value name="E1bM" />
+                  <value bounds="1651, 997, 1683, 1026" />
+                  <value dropOut="None" />
+                  <value frame_method="Auto" />
+                  <value sensitivity="Highest" />
+                  <value use_field_settings="False" />
+               </values>
+            </field>
+            <field type="Leadtools.Forms.Processing.OmrFormField, Leadtools.Forms.Processing, Version=20.0.4.0, Culture=neutral, PublicKeyToken=9cf889f53ea9b907">
+               <values>
+                  <value name="E1bAbove" />
+                  <value bounds="1868, 997, 1899, 1026" />
+                  <value dropOut="None" />
+                  <value frame_method="Auto" />
+                  <value sensitivity="Highest" />
+                  <value use_field_settings="False" />
+               </values>
+            </field>
+            <field type="Leadtools.Forms.Processing.OmrFormField, Leadtools.Forms.Processing, Version=20.0.4.0, Culture=neutral, PublicKeyToken=9cf889f53ea9b907">
+               <values>
+                  <value name="E1bBelow" />
+                  <value bounds="2094, 997, 2121, 1026" />
+                  <value dropOut="None" />
+                  <value frame_method="Auto" />
+                  <value sensitivity="Highest" />
+                  <value use_field_settings="False" />
+               </values>
+            </field>
+            <field type="Leadtools.Forms.Processing.TextFormField, Leadtools.Forms.Processing, Version=20.0.4.0, Culture=neutral, PublicKeyToken=9cf889f53ea9b907">
+               <values>
+                  <value name="E2text" />
+                  <value bounds="1064, 1123, 1466, 1185" />
+                  <value dropOut="None" />
+                  <value regex_pattern="" />
+                  <value ocr_text_type="FlowText" />
+                  <value enable_icr="False" />
+                  <value enable_ocr="True" />
+                  <value text_field_type="Character" />
+               </values>
+            </field>
+            <field type="Leadtools.Forms.Processing.OmrFormField, Leadtools.Forms.Processing, Version=20.0.4.0, Culture=neutral, PublicKeyToken=9cf889f53ea9b907">
+               <values>
+                  <value name="E2Ft" />
+                  <value bounds="1507, 1158, 1536, 1188" />
+                  <value dropOut="None" />
+                  <value frame_method="Auto" />
+                  <value sensitivity="Highest" />
+                  <value use_field_settings="False" />
+               </values>
+            </field>
+            <field type="Leadtools.Forms.Processing.OmrFormField, Leadtools.Forms.Processing, Version=20.0.4.0, Culture=neutral, PublicKeyToken=9cf889f53ea9b907">
+               <values>
+                  <value name="E2M" />
+                  <value bounds="1651, 1158, 1683, 1188" />
+                  <value dropOut="None" />
+                  <value frame_method="Auto" />
+                  <value sensitivity="Highest" />
+                  <value use_field_settings="False" />
+               </values>
+            </field>
+            <field type="Leadtools.Forms.Processing.OmrFormField, Leadtools.Forms.Processing, Version=20.0.4.0, Culture=neutral, PublicKeyToken=9cf889f53ea9b907">
+               <values>
+                  <value name="E2Above" />
+                  <value bounds="1868, 1158, 1899, 1188" />
+                  <value dropOut="None" />
+                  <value frame_method="Auto" />
+                  <value sensitivity="Highest" />
+                  <value use_field_settings="False" />
+               </values>
+            </field>
+            <field type="Leadtools.Forms.Processing.OmrFormField, Leadtools.Forms.Processing, Version=20.0.4.0, Culture=neutral, PublicKeyToken=9cf889f53ea9b907">
+               <values>
+                  <value name="E2Below" />
+                  <value bounds="2094, 1158, 2121, 1188" />
+                  <value dropOut="None" />
+                  <value frame_method="Auto" />
+                  <value sensitivity="Highest" />
+                  <value use_field_settings="False" />
+               </values>
+            </field>
+            <field type="Leadtools.Forms.Processing.TextFormField, Leadtools.Forms.Processing, Version=20.0.4.0, Culture=neutral, PublicKeyToken=9cf889f53ea9b907">
+               <values>
+                  <value name="E3text" />
+                  <value bounds="1065, 1202, 1464, 1263" />
+                  <value dropOut="None" />
+                  <value regex_pattern="" />
+                  <value ocr_text_type="FlowText" />
+                  <value enable_icr="False" />
+                  <value enable_ocr="True" />
+                  <value text_field_type="Character" />
+               </values>
+            </field>
+            <field type="Leadtools.Forms.Processing.OmrFormField, Leadtools.Forms.Processing, Version=20.0.4.0, Culture=neutral, PublicKeyToken=9cf889f53ea9b907">
+               <values>
+                  <value name="E3Ft" />
+                  <value bounds="1503, 1236, 1534, 1266" />
+                  <value dropOut="None" />
+                  <value frame_method="Auto" />
+                  <value sensitivity="Highest" />
+                  <value use_field_settings="False" />
+               </values>
+            </field>
+            <field type="Leadtools.Forms.Processing.OmrFormField, Leadtools.Forms.Processing, Version=20.0.4.0, Culture=neutral, PublicKeyToken=9cf889f53ea9b907">
+               <values>
+                  <value name="E3M" />
+                  <value bounds="1651, 1236, 1683, 1266" />
+                  <value dropOut="None" />
+                  <value frame_method="Auto" />
+                  <value sensitivity="Highest" />
+                  <value use_field_settings="False" />
+               </values>
+            </field>
+            <field type="Leadtools.Forms.Processing.OmrFormField, Leadtools.Forms.Processing, Version=20.0.4.0, Culture=neutral, PublicKeyToken=9cf889f53ea9b907">
+               <values>
+                  <value name="E3Above" />
+                  <value bounds="1868, 1236, 1899, 1266" />
+                  <value dropOut="None" />
+                  <value frame_method="Auto" />
+                  <value sensitivity="Highest" />
+                  <value use_field_settings="False" />
+               </values>
+            </field>
+            <field type="Leadtools.Forms.Processing.OmrFormField, Leadtools.Forms.Processing, Version=20.0.4.0, Culture=neutral, PublicKeyToken=9cf889f53ea9b907">
+               <values>
+                  <value name="E3Below" />
+                  <value bounds="2094, 1236, 2121, 1266" />
+                  <value dropOut="None" />
+                  <value frame_method="Auto" />
+                  <value sensitivity="Highest" />
+                  <value use_field_settings="False" />
+               </values>
+            </field>
+            <field type="Leadtools.Forms.Processing.TextFormField, Leadtools.Forms.Processing, Version=20.0.4.0, Culture=neutral, PublicKeyToken=9cf889f53ea9b907">
+               <values>
+                  <value name="E4Text" />
+                  <value bounds="1061, 1303, 1466, 1377" />
+                  <value dropOut="None" />
+                  <value regex_pattern="" />
+                  <value ocr_text_type="FlowText" />
+                  <value enable_icr="False" />
+                  <value enable_ocr="True" />
+                  <value text_field_type="Character" />
+               </values>
+            </field>
+            <field type="Leadtools.Forms.Processing.OmrFormField, Leadtools.Forms.Processing, Version=20.0.4.0, Culture=neutral, PublicKeyToken=9cf889f53ea9b907">
+               <values>
+                  <value name="E4Ft" />
+                  <value bounds="1503, 1352, 1533, 1381" />
+                  <value dropOut="None" />
+                  <value frame_method="Auto" />
+                  <value sensitivity="Highest" />
+                  <value use_field_settings="False" />
+               </values>
+            </field>
+            <field type="Leadtools.Forms.Processing.OmrFormField, Leadtools.Forms.Processing, Version=20.0.4.0, Culture=neutral, PublicKeyToken=9cf889f53ea9b907">
+               <values>
+                  <value name="E4M" />
+                  <value bounds="1651, 1352, 1683, 1381" />
+                  <value dropOut="None" />
+                  <value frame_method="Auto" />
+                  <value sensitivity="Highest" />
+                  <value use_field_settings="False" />
+               </values>
+            </field>
+            <field type="Leadtools.Forms.Processing.OmrFormField, Leadtools.Forms.Processing, Version=20.0.4.0, Culture=neutral, PublicKeyToken=9cf889f53ea9b907">
+               <values>
+                  <value name="E4Above" />
+                  <value bounds="1868, 1352, 1899, 1381" />
+                  <value dropOut="None" />
+                  <value frame_method="Auto" />
+                  <value sensitivity="Highest" />
+                  <value use_field_settings="False" />
+               </values>
+            </field>
+            <field type="Leadtools.Forms.Processing.OmrFormField, Leadtools.Forms.Processing, Version=20.0.4.0, Culture=neutral, PublicKeyToken=9cf889f53ea9b907">
+               <values>
+                  <value name="E4Below" />
+                  <value bounds="2094, 1352, 2121, 1381" />
+                  <value dropOut="None" />
+                  <value frame_method="Auto" />
+                  <value sensitivity="Highest" />
+                  <value use_field_settings="False" />
+               </values>
+            </field>
+            <field type="Leadtools.Forms.Processing.OmrFormField, Leadtools.Forms.Processing, Version=20.0.4.0, Culture=neutral, PublicKeyToken=9cf889f53ea9b907">
+               <values>
+                  <value name="E5Yes" />
+                  <value bounds="842, 1468, 873, 1498" />
+                  <value dropOut="None" />
+                  <value frame_method="Auto" />
+                  <value sensitivity="Highest" />
+                  <value use_field_settings="False" />
+               </values>
+            </field>
+            <field type="Leadtools.Forms.Processing.OmrFormField, Leadtools.Forms.Processing, Version=20.0.4.0, Culture=neutral, PublicKeyToken=9cf889f53ea9b907">
+               <values>
+                  <value name="E5No" />
+                  <value bounds="1011, 1467, 1039, 1498" />
+                  <value dropOut="None" />
+                  <value frame_method="Auto" />
+                  <value sensitivity="Highest" />
+                  <value use_field_settings="False" />
+               </values>
+            </field>
+            <field type="Leadtools.Forms.Processing.OmrFormField, Leadtools.Forms.Processing, Version=20.0.4.0, Culture=neutral, PublicKeyToken=9cf889f53ea9b907">
+               <values>
+                  <value name="E5Unknown" />
+                  <value bounds="1161, 1467, 1193, 1498" />
+                  <value dropOut="None" />
+                  <value frame_method="Auto" />
+                  <value sensitivity="Highest" />
+                  <value use_field_settings="False" />
+               </values>
+            </field>
+         </fields>
+      </page>
+   </pages>
+</leadtools_form_processing_fields>

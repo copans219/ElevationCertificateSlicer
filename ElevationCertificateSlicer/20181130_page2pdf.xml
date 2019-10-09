@@ -1,0 +1,361 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<leadtools_form_processing_fields>
+   <pages>
+      <page number="1" dpix="200" dpiy="200">
+         <fields>
+            <field type="Leadtools.Forms.Processing.OmrFormField, Leadtools.Forms.Processing, Version=20.0.4.0, Culture=neutral, PublicKeyToken=9cf889f53ea9b907">
+               <values>
+                  <value name="C1Construction" />
+                  <value bounds="855, 604, 887, 637" />
+                  <value dropOut="None" />
+                  <value frame_method="Auto" />
+                  <value sensitivity="Highest" />
+                  <value use_field_settings="False" />
+               </values>
+            </field>
+            <field type="Leadtools.Forms.Processing.OmrFormField, Leadtools.Forms.Processing, Version=20.0.4.0, Culture=neutral, PublicKeyToken=9cf889f53ea9b907">
+               <values>
+                  <value name="C1Building" />
+                  <value bounds="1359, 606, 1391, 636" />
+                  <value dropOut="None" />
+                  <value frame_method="Auto" />
+                  <value sensitivity="Highest" />
+                  <value use_field_settings="False" />
+               </values>
+            </field>
+            <field type="Leadtools.Forms.Processing.OmrFormField, Leadtools.Forms.Processing, Version=20.0.4.0, Culture=neutral, PublicKeyToken=9cf889f53ea9b907">
+               <values>
+                  <value name="C1Finished" />
+                  <value bounds="1955, 608, 1987, 639" />
+                  <value dropOut="None" />
+                  <value frame_method="Auto" />
+                  <value sensitivity="Highest" />
+                  <value use_field_settings="False" />
+               </values>
+            </field>
+            <field type="Leadtools.Forms.Processing.TextFormField, Leadtools.Forms.Processing, Version=20.0.4.0, Culture=neutral, PublicKeyToken=9cf889f53ea9b907">
+               <values>
+                  <value name="C2Benchmark" />
+                  <value bounds="573, 804, 1206, 858" />
+                  <value dropOut="None" />
+                  <value regex_pattern="" />
+                  <value ocr_text_type="FlowText" />
+                  <value enable_icr="False" />
+                  <value enable_ocr="True" />
+                  <value text_field_type="Character" />
+               </values>
+            </field>
+            <field type="Leadtools.Forms.Processing.TextFormField, Leadtools.Forms.Processing, Version=20.0.4.0, Culture=neutral, PublicKeyToken=9cf889f53ea9b907">
+               <values>
+                  <value name="C2Vertical" />
+                  <value bounds="1475, 799, 2126, 857" />
+                  <value dropOut="None" />
+                  <value regex_pattern="" />
+                  <value ocr_text_type="FlowText" />
+                  <value enable_icr="False" />
+                  <value enable_ocr="True" />
+                  <value text_field_type="Character" />
+               </values>
+            </field>
+            <field type="Leadtools.Forms.Processing.OmrFormField, Leadtools.Forms.Processing, Version=20.0.4.0, Culture=neutral, PublicKeyToken=9cf889f53ea9b907">
+               <values>
+                  <value name="C2NGVD1929" />
+                  <value bounds="346, 948, 379, 980" />
+                  <value dropOut="None" />
+                  <value frame_method="Auto" />
+                  <value sensitivity="Highest" />
+                  <value use_field_settings="False" />
+               </values>
+            </field>
+            <field type="Leadtools.Forms.Processing.OmrFormField, Leadtools.Forms.Processing, Version=20.0.4.0, Culture=neutral, PublicKeyToken=9cf889f53ea9b907">
+               <values>
+                  <value name="C2NAVD1988" />
+                  <value bounds="635, 948, 669, 981" />
+                  <value dropOut="None" />
+                  <value frame_method="Auto" />
+                  <value sensitivity="Highest" />
+                  <value use_field_settings="False" />
+               </values>
+            </field>
+            <field type="Leadtools.Forms.Processing.OmrFormField, Leadtools.Forms.Processing, Version=20.0.4.0, Culture=neutral, PublicKeyToken=9cf889f53ea9b907">
+               <values>
+                  <value name="C2Other" />
+                  <value bounds="926, 948, 958, 980" />
+                  <value dropOut="None" />
+                  <value frame_method="Auto" />
+                  <value sensitivity="Highest" />
+                  <value use_field_settings="False" />
+               </values>
+            </field>
+            <field type="Leadtools.Forms.Processing.TextFormField, Leadtools.Forms.Processing, Version=20.0.4.0, Culture=neutral, PublicKeyToken=9cf889f53ea9b907">
+               <values>
+                  <value name="C2Source" />
+                  <value bounds="1214, 925, 2400, 981" />
+                  <value dropOut="None" />
+                  <value regex_pattern="" />
+                  <value ocr_text_type="FlowText" />
+                  <value enable_icr="False" />
+                  <value enable_ocr="True" />
+                  <value text_field_type="Character" />
+               </values>
+            </field>
+            <field type="Leadtools.Forms.Processing.TextFormField, Leadtools.Forms.Processing, Version=20.0.4.0, Culture=neutral, PublicKeyToken=9cf889f53ea9b907">
+               <values>
+                  <value name="C2a" />
+                  <value bounds="1489, 1067, 1907, 1125" />
+                  <value dropOut="None" />
+                  <value regex_pattern="" />
+                  <value ocr_text_type="FlowText" />
+                  <value enable_icr="False" />
+                  <value enable_ocr="True" />
+                  <value text_field_type="Character" />
+               </values>
+            </field>
+            <field type="Leadtools.Forms.Processing.OmrFormField, Leadtools.Forms.Processing, Version=20.0.4.0, Culture=neutral, PublicKeyToken=9cf889f53ea9b907">
+               <values>
+                  <value name="C2aFt" />
+                  <value bounds="1946, 1088, 1980, 1121" />
+                  <value dropOut="None" />
+                  <value frame_method="Auto" />
+                  <value sensitivity="Highest" />
+                  <value use_field_settings="False" />
+               </values>
+            </field>
+            <field type="Leadtools.Forms.Processing.OmrFormField, Leadtools.Forms.Processing, Version=20.0.4.0, Culture=neutral, PublicKeyToken=9cf889f53ea9b907">
+               <values>
+                  <value name="C2aM" />
+                  <value bounds="2129, 1089, 2161, 1120" />
+                  <value dropOut="None" />
+                  <value frame_method="Auto" />
+                  <value sensitivity="Highest" />
+                  <value use_field_settings="False" />
+               </values>
+            </field>
+            <field type="Leadtools.Forms.Processing.TextFormField, Leadtools.Forms.Processing, Version=20.0.4.0, Culture=neutral, PublicKeyToken=9cf889f53ea9b907">
+               <values>
+                  <value name="C2b" />
+                  <value bounds="1484, 1138, 1906, 1191" />
+                  <value dropOut="None" />
+                  <value regex_pattern="" />
+                  <value ocr_text_type="FlowText" />
+                  <value enable_icr="False" />
+                  <value enable_ocr="True" />
+                  <value text_field_type="Character" />
+               </values>
+            </field>
+            <field type="Leadtools.Forms.Processing.OmrFormField, Leadtools.Forms.Processing, Version=20.0.4.0, Culture=neutral, PublicKeyToken=9cf889f53ea9b907">
+               <values>
+                  <value name="C2bFt" />
+                  <value bounds="1947, 1154, 1980, 1187" />
+                  <value dropOut="None" />
+                  <value frame_method="Auto" />
+                  <value sensitivity="Highest" />
+                  <value use_field_settings="False" />
+               </values>
+            </field>
+            <field type="Leadtools.Forms.Processing.OmrFormField, Leadtools.Forms.Processing, Version=20.0.4.0, Culture=neutral, PublicKeyToken=9cf889f53ea9b907">
+               <values>
+                  <value name="C2bM" />
+                  <value bounds="2128, 1156, 2162, 1187" />
+                  <value dropOut="None" />
+                  <value frame_method="Auto" />
+                  <value sensitivity="Highest" />
+                  <value use_field_settings="False" />
+               </values>
+            </field>
+            <field type="Leadtools.Forms.Processing.TextFormField, Leadtools.Forms.Processing, Version=20.0.4.0, Culture=neutral, PublicKeyToken=9cf889f53ea9b907">
+               <values>
+                  <value name="C2c" />
+                  <value bounds="1483, 1202, 1905, 1260" />
+                  <value dropOut="None" />
+                  <value regex_pattern="" />
+                  <value ocr_text_type="FlowText" />
+                  <value enable_icr="False" />
+                  <value enable_ocr="True" />
+                  <value text_field_type="Character" />
+               </values>
+            </field>
+            <field type="Leadtools.Forms.Processing.OmrFormField, Leadtools.Forms.Processing, Version=20.0.4.0, Culture=neutral, PublicKeyToken=9cf889f53ea9b907">
+               <values>
+                  <value name="C2cFt" />
+                  <value bounds="1947, 1223, 1978, 1255" />
+                  <value dropOut="None" />
+                  <value frame_method="Auto" />
+                  <value sensitivity="Highest" />
+                  <value use_field_settings="False" />
+               </values>
+            </field>
+            <field type="Leadtools.Forms.Processing.OmrFormField, Leadtools.Forms.Processing, Version=20.0.4.0, Culture=neutral, PublicKeyToken=9cf889f53ea9b907">
+               <values>
+                  <value name="C2cM" />
+                  <value bounds="2128, 1224, 2161, 1255" />
+                  <value dropOut="None" />
+                  <value frame_method="Auto" />
+                  <value sensitivity="Highest" />
+                  <value use_field_settings="False" />
+               </values>
+            </field>
+            <field type="Leadtools.Forms.Processing.TextFormField, Leadtools.Forms.Processing, Version=20.0.4.0, Culture=neutral, PublicKeyToken=9cf889f53ea9b907">
+               <values>
+                  <value name="C2d" />
+                  <value bounds="1482, 1267, 1908, 1323" />
+                  <value dropOut="None" />
+                  <value regex_pattern="" />
+                  <value ocr_text_type="FlowText" />
+                  <value enable_icr="False" />
+                  <value enable_ocr="True" />
+                  <value text_field_type="Character" />
+               </values>
+            </field>
+            <field type="Leadtools.Forms.Processing.OmrFormField, Leadtools.Forms.Processing, Version=20.0.4.0, Culture=neutral, PublicKeyToken=9cf889f53ea9b907">
+               <values>
+                  <value name="C2dFt" />
+                  <value bounds="1948, 1287, 1979, 1319" />
+                  <value dropOut="None" />
+                  <value frame_method="Auto" />
+                  <value sensitivity="Highest" />
+                  <value use_field_settings="False" />
+               </values>
+            </field>
+            <field type="Leadtools.Forms.Processing.OmrFormField, Leadtools.Forms.Processing, Version=20.0.4.0, Culture=neutral, PublicKeyToken=9cf889f53ea9b907">
+               <values>
+                  <value name="C2dM" />
+                  <value bounds="2131, 1287, 2161, 1319" />
+                  <value dropOut="None" />
+                  <value frame_method="Auto" />
+                  <value sensitivity="Highest" />
+                  <value use_field_settings="False" />
+               </values>
+            </field>
+            <field type="Leadtools.Forms.Processing.TextFormField, Leadtools.Forms.Processing, Version=20.0.4.0, Culture=neutral, PublicKeyToken=9cf889f53ea9b907">
+               <values>
+                  <value name="C2e" />
+                  <value bounds="1490, 1363, 1907, 1426" />
+                  <value dropOut="None" />
+                  <value regex_pattern="" />
+                  <value ocr_text_type="FlowText" />
+                  <value enable_icr="False" />
+                  <value enable_ocr="True" />
+                  <value text_field_type="Character" />
+               </values>
+            </field>
+            <field type="Leadtools.Forms.Processing.OmrFormField, Leadtools.Forms.Processing, Version=20.0.4.0, Culture=neutral, PublicKeyToken=9cf889f53ea9b907">
+               <values>
+                  <value name="C2eFt" />
+                  <value bounds="1946, 1388, 1980, 1421" />
+                  <value dropOut="None" />
+                  <value frame_method="Auto" />
+                  <value sensitivity="Highest" />
+                  <value use_field_settings="False" />
+               </values>
+            </field>
+            <field type="Leadtools.Forms.Processing.OmrFormField, Leadtools.Forms.Processing, Version=20.0.4.0, Culture=neutral, PublicKeyToken=9cf889f53ea9b907">
+               <values>
+                  <value name="C2eM" />
+                  <value bounds="2129, 1389, 2162, 1421" />
+                  <value dropOut="None" />
+                  <value frame_method="Auto" />
+                  <value sensitivity="Highest" />
+                  <value use_field_settings="False" />
+               </values>
+            </field>
+            <field type="Leadtools.Forms.Processing.TextFormField, Leadtools.Forms.Processing, Version=20.0.4.0, Culture=neutral, PublicKeyToken=9cf889f53ea9b907">
+               <values>
+                  <value name="C2f" />
+                  <value bounds="1490, 1441, 1905, 1498" />
+                  <value dropOut="None" />
+                  <value regex_pattern="" />
+                  <value ocr_text_type="FlowText" />
+                  <value enable_icr="False" />
+                  <value enable_ocr="True" />
+                  <value text_field_type="Character" />
+               </values>
+            </field>
+            <field type="Leadtools.Forms.Processing.OmrFormField, Leadtools.Forms.Processing, Version=20.0.4.0, Culture=neutral, PublicKeyToken=9cf889f53ea9b907">
+               <values>
+                  <value name="C2fFt" />
+                  <value bounds="1947, 1460, 1979, 1493" />
+                  <value dropOut="None" />
+                  <value frame_method="Auto" />
+                  <value sensitivity="Highest" />
+                  <value use_field_settings="False" />
+               </values>
+            </field>
+            <field type="Leadtools.Forms.Processing.OmrFormField, Leadtools.Forms.Processing, Version=20.0.4.0, Culture=neutral, PublicKeyToken=9cf889f53ea9b907">
+               <values>
+                  <value name="C2fM" />
+                  <value bounds="2130, 1462, 2162, 1493" />
+                  <value dropOut="None" />
+                  <value frame_method="Auto" />
+                  <value sensitivity="Highest" />
+                  <value use_field_settings="False" />
+               </values>
+            </field>
+            <field type="Leadtools.Forms.Processing.TextFormField, Leadtools.Forms.Processing, Version=20.0.4.0, Culture=neutral, PublicKeyToken=9cf889f53ea9b907">
+               <values>
+                  <value name="C2g" />
+                  <value bounds="1488, 1513, 1909, 1569" />
+                  <value dropOut="None" />
+                  <value regex_pattern="" />
+                  <value ocr_text_type="FlowText" />
+                  <value enable_icr="False" />
+                  <value enable_ocr="True" />
+                  <value text_field_type="Character" />
+               </values>
+            </field>
+            <field type="Leadtools.Forms.Processing.OmrFormField, Leadtools.Forms.Processing, Version=20.0.4.0, Culture=neutral, PublicKeyToken=9cf889f53ea9b907">
+               <values>
+                  <value name="C2gFt" />
+                  <value bounds="1947, 1533, 1980, 1565" />
+                  <value dropOut="None" />
+                  <value frame_method="Auto" />
+                  <value sensitivity="Highest" />
+                  <value use_field_settings="False" />
+               </values>
+            </field>
+            <field type="Leadtools.Forms.Processing.OmrFormField, Leadtools.Forms.Processing, Version=20.0.4.0, Culture=neutral, PublicKeyToken=9cf889f53ea9b907">
+               <values>
+                  <value name="C2gM" />
+                  <value bounds="2130, 1534, 2163, 1564" />
+                  <value dropOut="None" />
+                  <value frame_method="Auto" />
+                  <value sensitivity="Highest" />
+                  <value use_field_settings="False" />
+               </values>
+            </field>
+            <field type="Leadtools.Forms.Processing.TextFormField, Leadtools.Forms.Processing, Version=20.0.4.0, Culture=neutral, PublicKeyToken=9cf889f53ea9b907">
+               <values>
+                  <value name="C2h" />
+                  <value bounds="1490, 1604, 1906, 1672" />
+                  <value dropOut="None" />
+                  <value regex_pattern="" />
+                  <value ocr_text_type="FlowText" />
+                  <value enable_icr="False" />
+                  <value enable_ocr="True" />
+                  <value text_field_type="Character" />
+               </values>
+            </field>
+            <field type="Leadtools.Forms.Processing.OmrFormField, Leadtools.Forms.Processing, Version=20.0.4.0, Culture=neutral, PublicKeyToken=9cf889f53ea9b907">
+               <values>
+                  <value name="C2hFt" />
+                  <value bounds="1946, 1636, 1979, 1669" />
+                  <value dropOut="None" />
+                  <value frame_method="Auto" />
+                  <value sensitivity="Highest" />
+                  <value use_field_settings="False" />
+               </values>
+            </field>
+            <field type="Leadtools.Forms.Processing.OmrFormField, Leadtools.Forms.Processing, Version=20.0.4.0, Culture=neutral, PublicKeyToken=9cf889f53ea9b907">
+               <values>
+                  <value name="C2hM" />
+                  <value bounds="2130, 1637, 2163, 1669" />
+                  <value dropOut="None" />
+                  <value frame_method="Auto" />
+                  <value sensitivity="Highest" />
+                  <value use_field_settings="False" />
+               </values>         
+            </field>
+         </fields>
+      </page>
+   </pages>
+</leadtools_form_processing_fields>

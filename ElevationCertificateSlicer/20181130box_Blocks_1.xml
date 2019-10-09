@@ -1,0 +1,205 @@
+﻿<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<leadtools_form_processing_fields>
+   <pages>
+      <page number="1" dpix="200" dpiy="200">
+         <fields>
+            <field type="Leadtools.Forms.Processing.TextFormField, Leadtools.Forms.Processing, Version=20.0.4.0, Culture=neutral, PublicKeyToken=9cf889f53ea9b907">
+               <values>
+                  <value name="A2block" />
+                  <value bounds="75, 435, 1627, 616" />
+                  <value dropOut="None" />
+                  <value regex_pattern="" />
+                  <value ocr_text_type="FlowText" />
+                  <value enable_icr="False" />
+                  <value enable_ocr="True" />
+                  <value text_field_type="Character" />
+               </values>
+            </field>
+            <field type="Leadtools.Forms.Processing.TextFormField, Leadtools.Forms.Processing, Version=20.0.4.0, Culture=neutral, PublicKeyToken=9cf889f53ea9b907">
+               <values>
+                  <value name="A2BoxNo" />
+                  <value bounds="85, 488, 1196, 536" />
+                  <value dropOut="None" />
+                  <value regex_pattern="" />
+                  <value ocr_text_type="FlowText" />
+                  <value enable_icr="False" />
+                  <value enable_ocr="True" />
+                  <value text_field_type="Character" />
+               </values>
+            </field>
+            <field type="Leadtools.Forms.Processing.TextFormField, Leadtools.Forms.Processing, Version=20.0.4.0, Culture=neutral, PublicKeyToken=9cf889f53ea9b907">
+               <values>
+                  <value name="A2City" />
+                  <value bounds="85, 567, 833, 613" />
+                  <value dropOut="None" />
+                  <value regex_pattern="" />
+                  <value ocr_text_type="FlowText" />
+                  <value enable_icr="False" />
+                  <value enable_ocr="True" />
+                  <value text_field_type="Character" />
+               </values>
+            </field>
+            <field type="Leadtools.Forms.Processing.TextFormField, Leadtools.Forms.Processing, Version=20.0.4.0, Culture=neutral, PublicKeyToken=9cf889f53ea9b907">
+               <values>
+                  <value name="A2State" />
+                  <value bounds="840, 567, 1200, 615" />
+                  <value dropOut="None" />
+                  <value regex_pattern="" />
+                  <value ocr_text_type="FlowText" />
+                  <value enable_icr="False" />
+                  <value enable_ocr="True" />
+                  <value text_field_type="Character" />
+               </values>
+            </field>
+            <field type="Leadtools.Forms.Processing.TextFormField, Leadtools.Forms.Processing, Version=20.0.4.0, Culture=neutral, PublicKeyToken=9cf889f53ea9b907">
+               <values>
+                  <value name="A2Zip" />
+                  <value bounds="1204, 567, 1623, 611" />
+                  <value dropOut="None" />
+                  <value regex_pattern="" />
+                  <value ocr_text_type="FlowText" />
+                  <value enable_icr="False" />
+                  <value enable_ocr="True" />
+                  <value text_field_type="Character" />
+               </values>
+            </field>
+            <field type="Leadtools.Forms.Processing.TextFormField, Leadtools.Forms.Processing, Version=20.0.4.0, Culture=neutral, PublicKeyToken=9cf889f53ea9b907">
+               <values>
+                  <value name="A7to9block" />
+                  <value bounds="77, 846, 1627, 1461" />
+                  <value dropOut="None" />
+                  <value regex_pattern="" />
+                  <value ocr_text_type="FlowText" />
+                  <value enable_icr="False" />
+                  <value enable_ocr="True" />
+                  <value text_field_type="Character" />
+               </values>
+            </field>
+            <field type="Leadtools.Forms.Processing.TextFormField, Leadtools.Forms.Processing, Version=20.0.4.0, Culture=neutral, PublicKeyToken=9cf889f53ea9b907">
+               <values>
+                  <value name="A7" />
+                  <value bounds="454, 856, 560, 890" />
+                  <value dropOut="None" />
+                  <value regex_pattern="" />
+                  <value ocr_text_type="FlowText" />
+                  <value enable_icr="False" />
+                  <value enable_ocr="True" />
+                  <value text_field_type="Character" />
+               </values>
+            </field>
+            <field type="Leadtools.Forms.Processing.TextFormField, Leadtools.Forms.Processing, Version=20.0.4.0, Culture=neutral, PublicKeyToken=9cf889f53ea9b907">
+               <values>
+                  <value name="A8a" />
+                  <value bounds="708, 944, 1204, 988" />
+                  <value dropOut="None" />
+                  <value regex_pattern="" />
+                  <value ocr_text_type="FlowText" />
+                  <value enable_icr="False" />
+                  <value enable_ocr="True" />
+                  <value text_field_type="Character" />
+               </values>
+            </field>
+            <field type="Leadtools.Forms.Processing.TextFormField, Leadtools.Forms.Processing, Version=20.0.4.0, Culture=neutral, PublicKeyToken=9cf889f53ea9b907">
+               <values>
+                  <value name="A8b" />
+                  <value bounds="1394, 992, 1615, 1038" />
+                  <value dropOut="None" />
+                  <value regex_pattern="" />
+                  <value ocr_text_type="FlowText" />
+                  <value enable_icr="False" />
+                  <value enable_ocr="True" />
+                  <value text_field_type="Character" />
+               </values>
+            </field>
+            <field type="Leadtools.Forms.Processing.TextFormField, Leadtools.Forms.Processing, Version=20.0.4.0, Culture=neutral, PublicKeyToken=9cf889f53ea9b907">
+               <values>
+                  <value name="A8c" />
+                  <value bounds="629, 1038, 1213, 1088" />
+                  <value dropOut="None" />
+                  <value regex_pattern="" />
+                  <value ocr_text_type="FlowText" />
+                  <value enable_icr="False" />
+                  <value enable_ocr="True" />
+                  <value text_field_type="Character" />
+               </values>
+            </field>
+            <field type="Leadtools.Forms.Processing.OmrFormField, Leadtools.Forms.Processing, Version=20.0.4.0, Culture=neutral, PublicKeyToken=9cf889f53ea9b907">
+               <values>
+                  <value name="A8dYes" />
+                  <value bounds="539, 1109, 565, 1135" />
+                  <value dropOut="None" />
+                  <value frame_method="Auto" />
+                  <value sensitivity="Highest" />
+                  <value use_field_settings="False" />
+               </values>
+            </field>
+            <field type="Leadtools.Forms.Processing.OmrFormField, Leadtools.Forms.Processing, Version=20.0.4.0, Culture=neutral, PublicKeyToken=9cf889f53ea9b907">
+               <values>
+                  <value name="A8dNo" />
+                  <value bounds="650, 1110, 672, 1132" />
+                  <value dropOut="None" />
+                  <value frame_method="Auto" />
+                  <value sensitivity="Highest" />
+                  <value use_field_settings="False" />
+               </values>
+            </field>
+            <field type="Leadtools.Forms.Processing.TextFormField, Leadtools.Forms.Processing, Version=20.0.4.0, Culture=neutral, PublicKeyToken=9cf889f53ea9b907">
+               <values>
+                  <value name="A9a" />
+                  <value bounds="581, 1206, 1116, 1251" />
+                  <value dropOut="None" />
+                  <value regex_pattern="" />
+                  <value ocr_text_type="FlowText" />
+                  <value enable_icr="False" />
+                  <value enable_ocr="True" />
+                  <value text_field_type="Character" />
+               </values>
+            </field>
+            <field type="Leadtools.Forms.Processing.TextFormField, Leadtools.Forms.Processing, Version=20.0.4.0, Culture=neutral, PublicKeyToken=9cf889f53ea9b907">
+               <values>
+                  <value name="A9b" />
+                  <value bounds="1277, 1262, 1465, 1310" />
+                  <value dropOut="None" />
+                  <value regex_pattern="" />
+                  <value ocr_text_type="FlowText" />
+                  <value enable_icr="False" />
+                  <value enable_ocr="True" />
+                  <value text_field_type="Character" />
+               </values>
+            </field>
+            <field type="Leadtools.Forms.Processing.TextFormField, Leadtools.Forms.Processing, Version=20.0.4.0, Culture=neutral, PublicKeyToken=9cf889f53ea9b907">
+               <values>
+                  <value name="A9c" />
+                  <value bounds="635, 1312, 1029, 1363" />
+                  <value dropOut="None" />
+                  <value regex_pattern="" />
+                  <value ocr_text_type="FlowText" />
+                  <value enable_icr="False" />
+                  <value enable_ocr="True" />
+                  <value text_field_type="Character" />
+               </values>
+            </field>
+            <field type="Leadtools.Forms.Processing.OmrFormField, Leadtools.Forms.Processing, Version=20.0.4.0, Culture=neutral, PublicKeyToken=9cf889f53ea9b907">
+               <values>
+                  <value name="A9dYes" />
+                  <value bounds="539, 1389, 562, 1412" />
+                  <value dropOut="None" />
+                  <value frame_method="Auto" />
+                  <value sensitivity="Highest" />
+                  <value use_field_settings="False" />
+               </values>
+            </field>
+            <field type="Leadtools.Forms.Processing.OmrFormField, Leadtools.Forms.Processing, Version=20.0.4.0, Culture=neutral, PublicKeyToken=9cf889f53ea9b907">
+               <values>
+                  <value name="A9dNo" />
+                  <value bounds="646, 1383, 672, 1412" />
+                  <value dropOut="None" />
+                  <value frame_method="Auto" />
+                  <value sensitivity="Highest" />
+                  <value use_field_settings="False" />
+               </values>
+            </field>
+         </fields>
+      </page>
+   </pages>
+</leadtools_form_processing_fields>
