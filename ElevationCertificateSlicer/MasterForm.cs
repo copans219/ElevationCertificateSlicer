@@ -11,6 +11,7 @@ namespace ElevationCertificateSlicer
    public class MasterForm
    {
       public bool IsBlock;
+      public int Resolution;
       public string XmlFields;
       private RasterImage _image;
       private FormRecognitionAttributes _attributes;

@@ -1,44 +1,8 @@
 ﻿<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <leadtools_form_processing_fields>
    <pages>
-      <page number="1" dpix="300" dpiy="300">
+      <page number="1" dpix="200" dpiy="200">
          <fields>
-            <field type="Leadtools.Forms.Processing.TextFormField, Leadtools.Forms.Processing, Version=20.0.4.0, Culture=neutral, PublicKeyToken=9cf889f53ea9b907">
-               <values>
-                  <value name="C1to2block" />
-                  <value bounds="112, 578, 2431, 1703" />
-                  <value dropOut="None" />
-                  <value regex_pattern="" />
-                  <value ocr_text_type="FlowText" />
-                  <value enable_icr="False" />
-                  <value enable_ocr="True" />
-                  <value text_field_type="Character" />
-               </values>
-            </field>
-            <field type="Leadtools.Forms.Processing.TextFormField, Leadtools.Forms.Processing, Version=20.0.4.0, Culture=neutral, PublicKeyToken=9cf889f53ea9b907">
-               <values>
-                  <value name="Dblock1_CertifierLicense" />
-                  <value bounds="112, 1997, 1828, 2109" />
-                  <value dropOut="None" />
-                  <value regex_pattern="" />
-                  <value ocr_text_type="FlowText" />
-                  <value enable_icr="False" />
-                  <value enable_ocr="True" />
-                  <value text_field_type="Character" />
-               </values>
-            </field>
-            <field type="Leadtools.Forms.Processing.TextFormField, Leadtools.Forms.Processing, Version=20.0.4.0, Culture=neutral, PublicKeyToken=9cf889f53ea9b907">
-               <values>
-                  <value name="Dblock2" />
-                  <value bounds="116, 2456, 1832, 2700" />
-                  <value dropOut="None" />
-                  <value regex_pattern="" />
-                  <value ocr_text_type="FlowText" />
-                  <value enable_icr="False" />
-                  <value enable_ocr="True" />
-                  <value text_field_type="Character" />
-               </values>
-            </field>
             <field type="Leadtools.Forms.Processing.OmrFormField, Leadtools.Forms.Processing, Version=20.0.4.0, Culture=neutral, PublicKeyToken=9cf889f53ea9b907">
                <values>
                   <value name="C1Construction" />
@@ -468,7 +432,42 @@
                   <value text_field_type="Character" />
                </values>
             </field>
-
+            <field type="Leadtools.Forms.Processing.TextFormField, Leadtools.Forms.Processing, Version=20.0.4.0, Culture=neutral, PublicKeyToken=9cf889f53ea9b907">
+               <values>
+                  <value name="C1to2block" />
+                  <value bounds="119, 578, 2429, 1698" />
+                  <value dropOut="None" />
+                  <value regex_pattern="" />
+                  <value ocr_text_type="FlowText" />
+                  <value enable_icr="False" />
+                  <value enable_ocr="True" />
+                  <value text_field_type="Character" />
+               </values>
+            </field>
+            <field type="Leadtools.Forms.Processing.TextFormField, Leadtools.Forms.Processing, Version=20.0.4.0, Culture=neutral, PublicKeyToken=9cf889f53ea9b907">
+               <values>
+                  <value name="D1block" />
+                  <value bounds="119, 2003, 1835, 2112" />
+                  <value dropOut="None" />
+                  <value regex_pattern="" />
+                  <value ocr_text_type="FlowText" />
+                  <value enable_icr="False" />
+                  <value enable_ocr="True" />
+                  <value text_field_type="Character" />
+               </values>
+            </field>
+            <field type="Leadtools.Forms.Processing.TextFormField, Leadtools.Forms.Processing, Version=20.0.4.0, Culture=neutral, PublicKeyToken=9cf889f53ea9b907">
+               <values>
+                  <value name="D2block" />
+                  <value bounds="119, 2459, 1831, 2700" />
+                  <value dropOut="None" />
+                  <value regex_pattern="" />
+                  <value ocr_text_type="FlowText" />
+                  <value enable_icr="False" />
+                  <value enable_ocr="True" />
+                  <value text_field_type="Character" />
+               </values>
+            </field>
          </fields>
       </page>
    </pages>

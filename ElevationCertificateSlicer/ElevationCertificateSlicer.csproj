@@ -194,15 +194,10 @@
     <None Include="20181130box_Blocks_1.bin">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
-    <None Include="20181130box_Blocks_2.bin" />
-    <None Include="20181130box_Blocks_3.bin" />
-    <None Include="20181130_page1.bin">
+    <None Include="20181130box_Blocks_2.bin">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
-    <None Include="20181130_page2pdf.bin">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </None>
-    <None Include="20181130_page3pdf.bin">
+    <None Include="20181130box_Blocks_3.bin">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
     <None Include="App.config" />
@@ -221,26 +216,16 @@
     <Content Include="20181130box_Blocks_1.xml">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
-    <Content Include="20181130box_Blocks_2.tif" />
-    <Content Include="20181130box_Blocks_2.xml" />
-    <Content Include="20181130box_Blocks_3.tif" />
-    <Content Include="20181130box_Blocks_3.xml" />
-    <Content Include="20181130_page1.tif">
+    <Content Include="20181130box_Blocks_2.tif">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
-    <Content Include="20181130_page1.xml">
+    <Content Include="20181130box_Blocks_2.xml">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
-    <Content Include="20181130_page2pdf.tif">
+    <Content Include="20181130box_Blocks_3.tif">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
-    <Content Include="20181130_page2pdf.xml">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </Content>
-    <Content Include="20181130_page3pdf.tif">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </Content>
-    <Content Include="20181130_page3pdf.xml">
+    <Content Include="20181130box_Blocks_3.xml">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
   </ItemGroup>

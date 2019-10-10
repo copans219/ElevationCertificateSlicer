@@ -14,6 +14,7 @@ using Newtonsoft.Json;
 using System.Diagnostics;
 using System.Dynamic;
 using System.IO;
+using System.Linq.Expressions;
 using System.Net.Mime;
 using System.Security.Permissions;
 using System.ServiceModel.Security;
@@ -63,7 +64,7 @@ namespace ElevationCertificateSlicer
       /// </summary>
       public OcrMaster()
       {
-         string[] masterFormAttributes = Directory.GetFiles(BaseFolder, "2*.bin", SearchOption.AllDirectories);
+         string[] masterFormAttributes = Directory.GetFiles(BaseFolder, "*_Blocks_*.bin", SearchOption.AllDirectories);
 
          if (!StartUpEngines())
          {
@@ -157,45 +158,70 @@ namespace ElevationCertificateSlicer
                newForm.Status = "Matched";
                newForm.Master = currentMasterBlockForm;
                var fields = currentMasterBlockForm.ProcessingPages[0];
+               var scaler = currentMasterBlockForm.Resolution;
                foreach (var field in fields)
                {
                   int fudge = 10;
                   var rect200 = field.Bounds;
-                  var rect300 = new LeadRect(rect200.Left * 3 / 2 - fudge, rect200.Top * 3 / 2 - fudge, rect200.Width * 3 / 2 + fudge,
-                     rect200.Height * 3 / 2 + fudge);
-                  var image = newForm.ImageInfoMaster.CenteredImage.Image.CloneAll();
-                  var isBlock = field.Name.Contains("block");
-                  var subDir = Path.Combine(outDir, isBlock ? "blocks" : "fields");
-                  EnsurePathExists(subDir);
-                  var fileName = Path.Combine(subDir, newForm.Name + "_" + field.Name + ".jpg");
-                  
-                  CropCommand command = new CropCommand
+                  var rect300 = new LeadRect(rect200.Left * 300 / scaler - fudge, rect200.Top * 300 / scaler - fudge,
+                     rect200.Width * 300 / scaler + fudge,
+                     rect200.Height * 300 / scaler + fudge);
+                  try
                   {
-                     Rectangle = rect300
-                  };
-                  command.Run(image);
-                  RasterCodecs.Save(image, fileName, RasterImageFormat.Jpeg, bitsPerPixel: 8);
-                  var imageInfo = new ImageInfo() {Image = image, ImageFileInfo = new FileInfo(fileName)};
-                  var imageField = new ImageField() {Field = field, ImageInfo = imageInfo};
-                  if (!isBlock && field.GetType() == typeof(TextFormField))
-                  {
-                     using (IOcrPage ocrPage = OcrEngine.CreatePage(image, OcrImageSharingMode.AutoDispose))
+                     var imageInfoToUse = newForm.ImageInfoMaster.CenteredImage;
+                     var zoneType = OcrZoneType.Text;
+                     if (field.GetType() == typeof(OmrFormField))
                      {
-                        OcrZone ocrZone = new OcrZone();
-                        ocrZone.ZoneType = OcrZoneType.Text;
-                        ocrZone.Bounds = new LeadRect(0,0, image.ImageSize.Width, image.ImageSize.Height);
-                        ocrPage.Zones.Add(ocrZone);
-
-                        ocrPage.AutoZone(null);
-                        ocrPage.Recognize(null);
-                        var resultsPage = GetPageConfidence(ocrPage);
-                        imageField.Confidence = resultsPage.Confidence;
-                        logger.Info($"field ");
+                        imageInfoToUse = newForm.ImageInfoMaster.OmrImage;
+                        zoneType = OcrZoneType.Omr;
                      }
+
+                     var image = imageInfoToUse.Image.CloneAll();
+                     var isBlock = field.Name.Contains("block");
+                     var subDir = Path.Combine(outDir, isBlock ? "blocks" : "fields");
+                     EnsurePathExists(subDir);
+                     var fileName = Path.Combine(subDir, newForm.Name + "_" + field.Name + ".jpg");
+
+                     CropCommand command = new CropCommand
+                     {
+                        Rectangle = rect300
+                     };
+                     command.Run(image);
+                     RasterCodecs.Save(image, fileName, RasterImageFormat.Jpeg, bitsPerPixel: 8);
+                     var imageInfo = new ImageInfo() {Image = image, ImageFileInfo = new FileInfo(fileName)};
+                     var imageField = new ImageField() {Field = field, ImageInfo = imageInfo};
+                     if (!isBlock && field.GetType() == typeof(TextFormField))
+                     {
+                        using (IOcrPage ocrPage = OcrEngine.CreatePage(image, OcrImageSharingMode.AutoDispose))
+                        {
+                           OcrZone ocrZone = new OcrZone
+                           {
+                              ZoneType = zoneType,
+                              Bounds = new LeadRect(0, 0, image.ImageSize.Width - 1, image.ImageSize.Height - 1)
+                           };
+                           ocrPage.Zones.Add(ocrZone);
+
+                           ocrPage.AutoZone(null);
+                           ocrPage.Recognize(null);
+                           var resultsPage = GetPageConfidence(ocrPage);
+                           imageField.Confidence = resultsPage.Confidence;
+                           logger.Info($"field {field.Name} {rect300}");
+                        }
+                     }
+
+                     newForm.ImageFields.Add(imageField);
                   }
-                  newForm.ImageFields.Add(imageField);
+                  catch (Exception ex)
+                  {
+                     logger.Error($"Error on field {field.Name} {rect300}\n{ex}");
+                     newForm.Status = $"Error|Field {field.Name} {rect300}: [{ex.Message}]";
+                  }
                }
                usedMasters.Add(currentMasterBlockForm);
+            }
+            else
+            {
+               newForm.Status = "Unmatched|No MasterForm match";
             }
             logger.Info($"FilledForm processed {newForm.Name} {newForm.Status} {stopWatch.ElapsedMilliseconds} ");
             if (usedMasters.Count == BlockMasterForms.Count)
@@ -479,9 +505,6 @@ namespace ElevationCertificateSlicer
          if (File.Exists(attributesFileName))
          {
             byte[] formData = File.ReadAllBytes(attributesFileName);
-
-
-
             form.Attributes.SetData(formData);
             form.Properties = RecognitionEngine.GetFormProperties(form.Attributes);
          }
@@ -489,6 +512,7 @@ namespace ElevationCertificateSlicer
          if (File.Exists(fieldsFileName))
          {
             tempProcessingEngine.LoadFields(fieldsFileName);
+            form.Resolution = tempProcessingEngine.Pages[0].DpiX;
             form.ProcessingPages = tempProcessingEngine.Pages;
          }
 
