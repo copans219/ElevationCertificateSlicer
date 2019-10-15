@@ -58,7 +58,9 @@ namespace ElevationCertificateSlicer
       // <param name="endLevel">Levels are 1: extract image. 2: detect form, 3:</param>
       static void Main(string path = CertificatePdfSample, int endLevel = 3)
       {
-        logger.Info($"path={path}, endLevel={endLevel}");
+         var stopWatch = new Stopwatch();
+         stopWatch.Start();
+         logger.Info($"path={path}, endLevel={endLevel}");
          try
          {
             string licString =
@@ -111,6 +113,8 @@ namespace ElevationCertificateSlicer
             {
                try
                {
+                  if(filesToDo.Count > 1)
+                     stopWatch.Restart(); 
                   var fi = new FileInfo(pdfFile);
                   var stem = Path.GetFileNameWithoutExtension(pdfFile);
                   var dirTiff = Path.Combine(fi.DirectoryName, stem);
@@ -125,6 +129,12 @@ namespace ElevationCertificateSlicer
                      OriginalDirectoryName = dirTiff,
                   };
                   ocrMaster.ProcessOcr(formResults, pngFiles);
+                  var baseName = Path.GetFileNameWithoutExtension(formResults.PdfFileName);
+                  var jsonName = Path.Combine(dirTiff, baseName + ".json");
+                  formResults.ElsapsedMilliseconds = stopWatch.ElapsedMilliseconds;
+                  var json = JsonConvert.SerializeObject(formResults, Formatting.Indented);
+                  File.WriteAllText(jsonName, json);
+                  logger.Info($"Writing to {jsonName}, {stopWatch.ElapsedMilliseconds} milliseconds");
 
                }
                catch (Exception e)
@@ -132,8 +142,8 @@ namespace ElevationCertificateSlicer
                   logger.Error($"File {pdfFile} error {e}");
                }
             }
-            return;
          }
+         logger.Info($"Completed in {stopWatch.ElapsedMilliseconds} milliseconds");
       }
       public static void TestOcr()
       {

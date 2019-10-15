@@ -19,7 +19,9 @@ namespace ElevationCertificateSlicer
    public class ResultsForPrettyJson
    {
       public string PdfFileName;
+      public int FieldsWithError;
       public int Resolution = 300;
+      public long ElsapsedMilliseconds;
       public string OriginalDirectoryName;
       public int PagesInPdf;
       public List<string> MasterFormPages = new List<string>();
@@ -31,17 +33,19 @@ namespace ElevationCertificateSlicer
    {
       public string FieldName;
       public string FieldType;
+      public bool IsBlock;
+      public string ImageFile;
       public string Text;
       public bool IsFilled;
       public double Confidence;
       public string Bounds;
+      public string Error;
    }
    public class ImageField
    {
       public FormField Field;
       public ImageInfo ImageInfo;
       public FieldResultsForPrettyJson FieldResult = new FieldResultsForPrettyJson();
-      public OcrZoneType ZoneType;
    }
    public class FilledForm
    {

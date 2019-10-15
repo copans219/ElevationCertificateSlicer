@@ -179,8 +179,8 @@ namespace ElevationCertificateSlicer
                   int fudge = 10;
                   var rect200 = field.Bounds;
                   var rect300 = new LeadRect(rect200.Left * 300 / scaler - fudge, rect200.Top * 300 / scaler - fudge,
-                     rect200.Width * 300 / scaler + fudge,
-                     rect200.Height * 300 / scaler + fudge);
+                  rect200.Width * 300 / scaler + fudge,
+                  rect200.Height * 300 / scaler + fudge);
                   try
                   {
                      var imageInfoToUse = newForm.ImageInfoMaster.CenteredImage;
@@ -195,56 +195,70 @@ namespace ElevationCertificateSlicer
                      var image = imageInfoToUse.Image.CloneAll();
                      var isBlock = field.Name.Contains("block");
                      var subDir = Path.Combine(outDir, isBlock ? "blocks" : "fields");
-                     EnsurePathExists(subDir);
                      var fileName = Path.Combine(subDir, newForm.Name + "_" + field.Name + ".jpg");
-
-                     CropCommand command = new CropCommand
-                     {
-                        Rectangle = rect300
-                     };
-                     command.Run(image);
-                     RasterCodecs.Save(image, fileName, RasterImageFormat.Jpeg, bitsPerPixel: 8);
-                     var imageInfo = new ImageInfo() {Image = image, ImageFileInfo = new FileInfo(fileName)};
-
                      var imageField = new ImageField
                      {
                         Field = field,
-                        ImageInfo = imageInfo,
-                        ZoneType = zoneType,
                         FieldResult =
                         {
                            FieldName = field.Name,
+                           IsBlock = isBlock,
+                           ImageFile = fileName,
                            Bounds = field.Bounds.ToString(),
-                           FieldType = zoneType.ToString()
+                           FieldType = zoneType.ToString(),
+                           Error = "None"
                         }
                      };
 
-                     if (!isBlock && zoneType != OcrZoneType.Graphic)
+                     try
                      {
-                        using (IOcrPage ocrPage = OcrEngine.CreatePage(image, OcrImageSharingMode.AutoDispose))
+                        EnsurePathExists(subDir);
+                        CropCommand command = new CropCommand
                         {
-                           OcrZone ocrZone = new OcrZone
-                           {
-                              ZoneType = zoneType,
-                              Bounds = new LeadRect(fudge, fudge, image.ImageSize.Width - fudge, image.ImageSize.Height - fudge)
-                           };
-                           ocrPage.Zones.Add(ocrZone);
+                           Rectangle = rect300
+                        };
+                        command.Run(image);
+                        RasterCodecs.Save(image, fileName, RasterImageFormat.Jpeg, bitsPerPixel: 8);
+                        var imageInfo = new ImageInfo() {Image = image, ImageFileInfo = new FileInfo(fileName)};
+                        imageField.ImageInfo = imageInfo;
 
-                           ocrPage.Recognize(null);
-                           if (zoneType == OcrZoneType.Omr)
+                        if (!isBlock && zoneType != OcrZoneType.Graphic)
+                        {
+                           using (IOcrPage ocrPage = OcrEngine.CreatePage(image, OcrImageSharingMode.AutoDispose))
                            {
-                              GetOmrReading(ocrPage, field, imageField);
-                           }
-                           else if (zoneType == OcrZoneType.Text)
-                           {
-                              var resultsPage = GetPageConfidence(ocrPage);
-                              imageField.FieldResult.Confidence = resultsPage.Confidence;
-                              char[] crlf = { '\r', '\n' };
-                              imageField.FieldResult.Text = ocrPage.GetText(0).TrimEnd(crlf);
+                              OcrZone ocrZone = new OcrZone
+                              {
+                                 ZoneType = zoneType,
+                                 Bounds = new LeadRect(fudge, fudge, image.ImageSize.Width - fudge,
+                                    image.ImageSize.Height - fudge)
+                              };
+                              ocrPage.Zones.Add(ocrZone);
+
+                              ocrPage.Recognize(null);
+                              if (zoneType == OcrZoneType.Omr)
+                              {
+                                 GetOmrReading(ocrPage, field, imageField);
+                              }
+                              else if (zoneType == OcrZoneType.Text)
+                              {
+                                 var resultsPage = GetPageConfidence(ocrPage);
+                                 imageField.FieldResult.Confidence = resultsPage.Confidence;
+                                 char[] crlf = {'\r', '\n'};
+                                 imageField.FieldResult.Text = ocrPage.GetText(0).TrimEnd(crlf);
+                              }
                            }
                         }
+
+                        logger.Info(
+                           $"field {field.Name} {rect300} [{imageField.FieldResult.Text}] confidence: {imageField.FieldResult.Confidence}");
                      }
-                     logger.Info($"field {field.Name} {rect300} [{imageField.FieldResult.Text}] confidence: {imageField.FieldResult.Confidence}");
+                     catch (Exception exField)
+                     {
+                        logger.Error(exField, $"Error processing {field.Name}");
+                        formResults.FieldsWithError++;
+                        imageField.FieldResult.Error = exField.Message;
+                     }
+
                      newForm.ImageFields.Add(imageField);
                      formResults.OcrFields.Add(imageField.FieldResult);
                   }
@@ -267,6 +281,7 @@ namespace ElevationCertificateSlicer
                break;
             }
          }
+         
          stopWatch.Stop();
 
          return retForms;
@@ -591,7 +606,9 @@ namespace ElevationCertificateSlicer
          {
             MinConfidence = minConfidence
          };
-         if (Double.IsNaN(pageConfidence))
+         if (Double.IsNaN(results.Confidence))
+            results.Confidence = minConfidence;
+         if (Double.IsNaN(results.Confidence))
             results.Confidence = minConfidence;
          return results;
       }
