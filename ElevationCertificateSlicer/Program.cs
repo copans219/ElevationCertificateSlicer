@@ -119,7 +119,12 @@ namespace ElevationCertificateSlicer
                   var outFileTemplate = Path.Combine(dirTiff, stem + "_{page}.png");
                   logger.Info(outFileTemplate);
                   var pngFiles = ConvertDocumentToImage(pdfFile, outFileTemplate, RasterImageFormat.Png, 8, null);
-                  ocrMaster.ProcessOcr(dirTiff, pngFiles);
+                  var formResults = new ResultsForPrettyJson()
+                  {
+                     PdfFileName = fi.Name,
+                     OriginalDirectoryName = dirTiff,
+                  };
+                  ocrMaster.ProcessOcr(formResults, pngFiles);
 
                }
                catch (Exception e)
@@ -280,7 +285,7 @@ namespace ElevationCertificateSlicer
             //You may need to update the below path to point to "\LEADTOOLS Images\Forms\Forms to be Recognized\OCR\W9_OCR_Filled.tif". 
             if (true)
             {
-               string formToRecognize = Path.Combine(BaseFolder, "13984799_01.png");
+               string formToRecognize = Path.Combine(BaseFolder, "13984799_02.png");
                RasterImage image = codecs.Load(formToRecognize, 0, CodecsLoadByteOrder.BgrOrGray, 1, -1);
                //Load the image to recognize 
                FormRecognitionAttributes filledFormAttributes = recognitionEngine.CreateForm(null);

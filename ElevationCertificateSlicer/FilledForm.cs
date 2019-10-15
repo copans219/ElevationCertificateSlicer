@@ -12,15 +12,36 @@ using Leadtools.Forms.Common;
 using Leadtools.Forms.Recognition;
 using Leadtools.Forms.Processing;
 using Leadtools.Forms.Processing.Omr.Fields;
+using Leadtools.Ocr;
 
 namespace ElevationCertificateSlicer
 {
+   public class ResultsForPrettyJson
+   {
+      public string PdfFileName;
+      public int Resolution = 300;
+      public string OriginalDirectoryName;
+      public int PagesInPdf;
+      public List<string> MasterFormPages = new List<string>();
+      public int PagesMappedToForm;
+      public List<FieldResultsForPrettyJson> OcrFields = new List<FieldResultsForPrettyJson>();
+   }
+
+   public class FieldResultsForPrettyJson
+   {
+      public string FieldName;
+      public string FieldType;
+      public string Text;
+      public bool IsFilled;
+      public double Confidence;
+      public string Bounds;
+   }
    public class ImageField
    {
       public FormField Field;
       public ImageInfo ImageInfo;
-      public string Text;
-      public double Confidence;
+      public FieldResultsForPrettyJson FieldResult = new FieldResultsForPrettyJson();
+      public OcrZoneType ZoneType;
    }
    public class FilledForm
    {

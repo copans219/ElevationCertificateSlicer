@@ -56,6 +56,9 @@ namespace ElevationCertificateSlicer
       public FormRecognitionEngine RecognitionEngine;
       public FormProcessingEngine ProcessingEngine;
       public RasterCodecs RasterCodecs;
+      public char FilledChar;
+      public char UnfilledChar;
+
       public OcrEngineType OcrEngineType;
       private Stopwatch _recognitionTimer = new Stopwatch();
       private static readonly NLog.Logger logger = NLog.LogManager.GetCurrentClassLogger();
@@ -64,48 +67,58 @@ namespace ElevationCertificateSlicer
       /// </summary>
       public OcrMaster()
       {
-         string[] masterFormAttributes = Directory.GetFiles(BaseFolder, "*_Blocks_*.bin", SearchOption.AllDirectories);
+         string[] masterFormFields = Directory.GetFiles(BaseFolder, "*_Blocks_*.xml", SearchOption.AllDirectories);
 
          if (!StartUpEngines())
          {
             throw new Exception("Could not start engines");
          }
-         foreach (string masterFormAttribute in masterFormAttributes)
+ 
+         foreach (string masterFormField in masterFormFields)
          {
-            if (@masterFormAttribute.Contains("_runtime.")) continue;
-            logger.Info($"Loading master form {masterFormAttribute}");
-            string fieldsfName = String.Concat(Path.GetFileNameWithoutExtension(masterFormAttribute), ".xml");
-            string fieldsfullPath = Path.Combine(Path.GetDirectoryName(masterFormAttribute), fieldsfName);
-            var currentMasterForm = LoadMasterForm(masterFormAttribute, fieldsfullPath);
-
-            var formList = MasterForms;
-            if (fieldsfName.Contains("Block")) formList = BlockMasterForms;
-            formList.Add(currentMasterForm);
-            string imageName = String.Concat(Path.GetFileNameWithoutExtension(masterFormAttribute), ".tif");
-            string imagefullPath = Path.Combine(Path.GetDirectoryName(masterFormAttribute), imageName);
-            var image = formList[formList.Count - 1].Image =
-               RasterCodecs.Load(imagefullPath, 0, CodecsLoadByteOrder.BgrOrGray, 1, -1);
-            // RasterCodecs.Load(imagefullPath, 0, CodecsLoadByteOrder.BgrOrGrayOrRomm, 1, -1);
-            FormRecognitionAttributes masterFormAttributes2 = RecognitionEngine.CreateMasterForm(masterFormAttribute, Guid.Empty, null);
-            for (int i = 0; i < image.PageCount; i++)
+            if (masterFormField.Contains("_runtime.")) continue;
+            string binFile = String.Concat(Path.GetFileNameWithoutExtension(masterFormField), ".bin");
+            RasterImage tifImage = null;
+            if (!File.Exists(binFile))
             {
-               image.Page = i + 1;
-               //Add the master form page to the recognition engine 
-               RecognitionEngine.AddMasterFormPage(masterFormAttributes2, image, null);
+               string imageName = String.Concat(Path.GetFileNameWithoutExtension(masterFormField), ".tif");
+               string imagefullPath = Path.Combine(Path.GetDirectoryName(masterFormField), imageName);
+               tifImage =
+                  RasterCodecs.Load(imagefullPath, 0, CodecsLoadByteOrder.BgrOrGray, 1, -1);
+               // RasterCodecs.Load(imagefullPath, 0, CodecsLoadByteOrder.BgrOrGrayOrRomm, 1, -1);
+               FormRecognitionAttributes masterFormAttributes2 = RecognitionEngine.CreateMasterForm(masterFormField, Guid.Empty, null);
+               for (int i = 0; i < tifImage.PageCount; i++)
+               {
+                  tifImage.Page = i + 1;
+                  //Add the master form page to the recognition engine 
+                  RecognitionEngine.AddMasterFormPage(masterFormAttributes2, tifImage, null);
+               }
+               //Close the master form and save it's attributes 
+               RecognitionEngine.CloseMasterForm(masterFormAttributes2);
+               //Load the master form image 
+               File.WriteAllBytes(binFile, masterFormAttributes2.GetData());
+               //binFiles.Add(binFile);
             }
-            //Close the master form and save it's attributes 
-            RecognitionEngine.CloseMasterForm(masterFormAttributes2);
-            //formList[formList.Count - 1].Attributes = masterFormAttributes2;
+            logger.Info($"Loading master form {masterFormField}");
+            
+            
+            var currentMasterForm = LoadMasterForm(binFile, masterFormField);
 
+            var formList = BlockMasterForms;
+            //if (fieldsfName.Contains("Block")) formList = BlockMasterForms;
+            formList.Add(currentMasterForm);
          }
       }
 
-      public List<FilledForm> ProcessOcr(string outDir, List<ImageInfo> fileInfos)
+      public List<FilledForm> ProcessOcr(ResultsForPrettyJson formResults, 
+         List<ImageInfo> fileInfos)
       {
+         var outDir = formResults.OriginalDirectoryName;
          var retForms = new List<FilledForm>();
          var usedMasters = new HashSet<MasterForm>();
          Stopwatch stopWatch = new Stopwatch();
          stopWatch.Start();
+         formResults.PagesInPdf = fileInfos.Count;
          foreach (var ofi in fileInfos)
          {
 
@@ -146,6 +159,8 @@ namespace ElevationCertificateSlicer
             }
             if (currentMasterBlockForm != null)
             {
+               formResults.MasterFormPages.Add(currentMasterBlockForm.Properties.Name);
+               formResults.PagesMappedToForm++;
                logger.Info($"FilledForm matched {newForm.Name} {newForm.Status} {stopWatch.ElapsedMilliseconds} ");
                newForm.ImageInfoMaster.InitialImage = ofi;
                var centeredImage = ofi.Image.CloneAll();
@@ -175,7 +190,8 @@ namespace ElevationCertificateSlicer
                         imageInfoToUse = newForm.ImageInfoMaster.OmrImage;
                         zoneType = OcrZoneType.Omr;
                      }
-
+                     else if (field.GetType() == typeof(ImageFormField))
+                        zoneType = OcrZoneType.Graphic;
                      var image = imageInfoToUse.Image.CloneAll();
                      var isBlock = field.Name.Contains("block");
                      var subDir = Path.Combine(outDir, isBlock ? "blocks" : "fields");
@@ -189,27 +205,48 @@ namespace ElevationCertificateSlicer
                      command.Run(image);
                      RasterCodecs.Save(image, fileName, RasterImageFormat.Jpeg, bitsPerPixel: 8);
                      var imageInfo = new ImageInfo() {Image = image, ImageFileInfo = new FileInfo(fileName)};
-                     var imageField = new ImageField() {Field = field, ImageInfo = imageInfo};
-                     if (!isBlock && field.GetType() == typeof(TextFormField))
+
+                     var imageField = new ImageField
+                     {
+                        Field = field,
+                        ImageInfo = imageInfo,
+                        ZoneType = zoneType,
+                        FieldResult =
+                        {
+                           FieldName = field.Name,
+                           Bounds = field.Bounds.ToString(),
+                           FieldType = zoneType.ToString()
+                        }
+                     };
+
+                     if (!isBlock && zoneType != OcrZoneType.Graphic)
                      {
                         using (IOcrPage ocrPage = OcrEngine.CreatePage(image, OcrImageSharingMode.AutoDispose))
                         {
                            OcrZone ocrZone = new OcrZone
                            {
                               ZoneType = zoneType,
-                              Bounds = new LeadRect(0, 0, image.ImageSize.Width - 1, image.ImageSize.Height - 1)
+                              Bounds = new LeadRect(fudge, fudge, image.ImageSize.Width - fudge, image.ImageSize.Height - fudge)
                            };
                            ocrPage.Zones.Add(ocrZone);
 
-                           ocrPage.AutoZone(null);
                            ocrPage.Recognize(null);
-                           var resultsPage = GetPageConfidence(ocrPage);
-                           imageField.Confidence = resultsPage.Confidence;
-                           logger.Info($"field {field.Name} {rect300}");
+                           if (zoneType == OcrZoneType.Omr)
+                           {
+                              GetOmrReading(ocrPage, field, imageField);
+                           }
+                           else if (zoneType == OcrZoneType.Text)
+                           {
+                              var resultsPage = GetPageConfidence(ocrPage);
+                              imageField.FieldResult.Confidence = resultsPage.Confidence;
+                              char[] crlf = { '\r', '\n' };
+                              imageField.FieldResult.Text = ocrPage.GetText(0).TrimEnd(crlf);
+                           }
                         }
                      }
-
+                     logger.Info($"field {field.Name} {rect300} [{imageField.FieldResult.Text}] confidence: {imageField.FieldResult.Confidence}");
                      newForm.ImageFields.Add(imageField);
+                     formResults.OcrFields.Add(imageField.FieldResult);
                   }
                   catch (Exception ex)
                   {
@@ -235,7 +272,55 @@ namespace ElevationCertificateSlicer
          return retForms;
       }
 
-      private void PrepareOmrImage(RasterImage omrImage)
+      private void GetOmrReading(IOcrPage ocrPage, FormField field, ImageField imageField, int retry = 1)
+      {
+         IOcrPageCharacters pageCharacters = ocrPage.GetRecognizedCharacters();
+            
+         if (pageCharacters == null)
+         {
+            logger.Warn($"could not read OMR for ${field} ");
+            imageField.FieldResult.Confidence = 0;
+            imageField.FieldResult.Text = "";
+         }
+         else
+         {
+            IOcrZoneCharacters zoneCharacters = pageCharacters[0];
+            if (zoneCharacters.Count > 0)
+            {
+               OcrCharacter omrCharacter = zoneCharacters[0];
+               imageField.FieldResult.Text = omrCharacter.Code.ToString();
+               imageField.FieldResult.IsFilled = omrCharacter.Code == FilledChar;
+               imageField.FieldResult.Confidence = omrCharacter.Confidence;
+               // often on a fill we get the line from the box, so we retry more narrowly   
+               if (imageField.FieldResult.IsFilled)
+               {
+                  if (retry > 0)
+                  {
+                     var orgZone = ocrPage.Zones[0];
+                     orgZone.Bounds = ChangeBoundsRatio(orgZone.Bounds, 0.66);
+                     ocrPage.Recognize(null);
+                     GetOmrReading(ocrPage, field, imageField, 0);
+                     logger.Info($"FILLED {field.Name}");
+                  }
+               }
+            }
+            else
+            {
+               imageField.FieldResult.Text = "";
+            }
+         }
+      }
+
+      public static LeadRect ChangeBoundsRatio(LeadRect rect, double ratio)
+      {
+         int w = (int)(rect.Width * ratio);
+         int h = (int)(rect.Height * ratio);
+         int x = rect.X + (rect.Width - w) / 2;
+         int y = rect.Y + (rect.Height - h) / 2;
+         return new LeadRect(x, y, w, h);
+
+      }
+   private void PrepareOmrImage(RasterImage omrImage)
       {
          var colorResolution =
             new ColorResolutionCommand
@@ -266,13 +351,15 @@ namespace ElevationCertificateSlicer
       }
       public void LineRemoveCommand(LineRemoveCommandType type, RasterImage image)
       {
-         LineRemoveCommand command = new LineRemoveCommand();
-         command.Type = type;
-         command.Flags = LineRemoveCommandFlags.RemoveEntire;
-         command.MaximumLineWidth = 6;
-         command.MinimumLineLength = 30;
-         command.MaximumWallPercent = 10;
-         command.Wall = 10;
+         LineRemoveCommand command = new LineRemoveCommand
+         {
+            Type = type,
+            Flags = LineRemoveCommandFlags.RemoveEntire,
+            MaximumLineWidth = 6,
+            MinimumLineLength = 30,
+            MaximumWallPercent = 10,
+            Wall = 10
+         };
          command.Run(image);
       }
 
@@ -355,10 +442,14 @@ namespace ElevationCertificateSlicer
             StartUpOcrEngine();
             //StartUpBarcodeEngine();
             //StartupTwain();
+            FilledChar = OcrEngine.ZoneManager.OmrOptions.GetStateRecognitionCharacter(OcrOmrZoneState.Filled);
+            UnfilledChar = OcrEngine.ZoneManager.OmrOptions.GetStateRecognitionCharacter(OcrOmrZoneState.Unfilled);
+
             return true;
          }
          catch(Exception ex)
          {
+            logger.Error(ex,$"Error starting engines");
             return false;
          }
       }
@@ -412,15 +503,17 @@ namespace ElevationCertificateSlicer
       {
          public double PageConfidence { get; set; }
          public double Confidence { get; set; }
+
+         public double MinConfidence { get; set; }
          public int CertainWords { get; set; }
          public int TotalWords { get; set; }
 
-         public PageResults(double pageConfidence, int certainwords, int totalWords)
+         public PageResults(double pageConfidence, int certainWords, int totalWords)
          {
             PageConfidence = pageConfidence;
-            CertainWords = certainwords;
+            CertainWords = certainWords;
             TotalWords = totalWords;
-            Confidence = 0.25 * PageConfidence + 0.75 * certainwords * 100 / totalWords;
+            Confidence = 0.25 * PageConfidence + 0.75 * certainWords * 100 / totalWords;
          }
       }
 
@@ -432,6 +525,7 @@ namespace ElevationCertificateSlicer
          int totalWords = 0;
          int totalZoneWords = 0;
          int textZoneCount = 0;
+         double minConfidence = 101.0;
 
          for (int i = 0; i < ocrPage.Zones.Count; i++)
          {
@@ -453,6 +547,9 @@ namespace ElevationCertificateSlicer
                   characterCount = 0;
                   wordConfidence = 1000;
                }
+
+               if (ocrCharacter.Confidence < minConfidence)
+                  minConfidence = ocrCharacter.Confidence;
                if (ocrCharacter.Confidence < wordConfidence)
                   wordConfidence = ocrCharacter.Confidence;
                characterCount++;
@@ -490,7 +587,12 @@ namespace ElevationCertificateSlicer
          else
             pageConfidence = 0;
 
-         PageResults results = new PageResults(pageConfidence, certainWords, totalWords);
+         PageResults results = new PageResults(pageConfidence, certainWords, totalWords)
+         {
+            MinConfidence = minConfidence
+         };
+         if (Double.IsNaN(pageConfidence))
+            results.Confidence = minConfidence;
          return results;
       }
 
