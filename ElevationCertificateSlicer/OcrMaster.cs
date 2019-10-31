@@ -6,6 +6,7 @@ using Leadtools.Forms.Recognition;
 using Leadtools.Ocr;
 using Leadtools.Forms.Common;
 using Leadtools.ImageProcessing.Core;
+using Leadtools.ImageProcessing.Effects;
 using System.Diagnostics;
 using System.Drawing;
 using System.IO;
@@ -194,10 +195,13 @@ namespace ElevationCertificateSlicer
                      RecognitionEngine.GetFormAlignment(newForm.Master.Attributes, newForm.Attributes, null);
                   var fields = currentMasterBlockForm.ProcessingPages[0];
                   var scaler = currentMasterBlockForm.Resolution;
-                  var fieldsOnly = RasterImage.Create(centeredImage.Width, centeredImage.Height,
+                  var fieldsOnlyImage = RasterImage.Create(centeredImage.Width, centeredImage.Height,
                      centeredImage.BitsPerPixel, 300, RasterColor.White);
+                  //fieldsOnlyImage  = new RasterImage(RasterMemoryFlags.Conventional, centeredImage.Width, centeredImage.Height, centeredInage.BitsPerPixel, RasterByteOrder.Rgb, RasterViewPerspective.TopLeft, null, null, 0);
+
                   var subDirField = Path.Combine(outDir, "fields");
                   var fileNameFieldOnly = Path.Combine(subDirField, newForm.Name + "_fields.jpg");
+                  var combined = false;
                   foreach (var field in fields)
                   {
                      var isBlock = field.Name.Contains("block");
@@ -247,17 +251,22 @@ namespace ElevationCertificateSlicer
                            };
                            command.Run(image);
                            RasterCodecs.Save(image, fileName, RasterImageFormat.Jpeg, bitsPerPixel: 8);
-                           if (!isBlock && zoneType == OcrZoneType.Text)
+                           if (!isBlock && zoneType == OcrZoneType.Text && !combined)
                            {
                               try
                               {
-                                 var combiner = new CombineFastCommand();
-                                 combiner.DestinationImage = fieldsOnly;
+                                 ;
+                                 var combiner = new CombineCommand();
+                                 //combiner.DestinationImage = fieldsOnlyImage;
+                                 combiner.SourceImage = image.Clone();
                                  combiner.DestinationRectangle = rect300;
                                  var regionBounds = image.GetRegionBounds(null);
-                                 combiner.SourcePoint = new LeadPoint(regionBounds.X, regionBounds.Y);
-                                 combiner.Flags = CombineFastCommandFlags.OperationAverage ; // |CombineFastCommandFlags.OperationAverage;
-                                 combiner.Run(image);
+                                 combiner.SourcePoint = new LeadPoint(regionBounds.X, regionBounds.Y); 
+                                 //combiner.Flags = CombineCommandFlags.OperationAdd | CombineCommandFlags.Destination0 | CombineCommandFlags.Source1 | CombineCommandFlags.Destination0 ;
+
+                                 combiner.Flags = CombineCommandFlags.OperationOr | CombineCommandFlags.Destination0; ; // |CombineFastCommandFlags.OperationAverage;
+                                 combiner.Run(fieldsOnlyImage);
+                                 //combined = true;
                               }
                               catch (Exception exCombine)
                               {
@@ -318,7 +327,7 @@ namespace ElevationCertificateSlicer
                      }
                   }
 
-                  RasterCodecs.Save(fieldsOnly, fileNameFieldOnly, RasterImageFormat.Jpeg, bitsPerPixel: 8);
+                  RasterCodecs.Save(fieldsOnlyImage, fileNameFieldOnly, RasterImageFormat.Jpeg, bitsPerPixel: 8);
                   var googleResults = GoogleOcr(fileNameFieldOnly);
                   if (googleResults.Count > 0)
                      MergeGoogleOcr(newForm, googleResults);
