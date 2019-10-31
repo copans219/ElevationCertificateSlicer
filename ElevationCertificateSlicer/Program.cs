@@ -18,6 +18,12 @@ using System.Diagnostics;
 using System.Security.Permissions;
 using Newtonsoft.Json.Linq;
 
+using Amazon.S3;
+using Amazon.S3.Model;
+using Amazon;
+using Amazon.Internal;
+using Amazon.S3.IO;
+
 namespace ElevationCertificateSlicer
 {
    class Program
@@ -50,16 +56,71 @@ namespace ElevationCertificateSlicer
       }
 
       private static readonly NLog.Logger logger = NLog.LogManager.GetCurrentClassLogger();
+      private const string bucketName = "form-ocr";
+      //private const string bucketName = "arn:aws:s3:::form-ocr";
+      // For simplicity the example creates two objects from the same file.
+      // You specify key names for these objects.
+      private const string keyName1 = "*** key name for first object created ***";
+      private const string keyName2 = "*** key name for second object created ***";
+      private const string filePath = @"*** file path ***";
+
+      static async Task WriteS3()
+      {
+         try
+         {
+            AmazonS3Config cfg = new AmazonS3Config
+            {
+               RegionEndpoint = Amazon.RegionEndpoint.USEast2  //bucket location
+            };
+
+
+            //var bucketRegion = RegionEndpoint.GetBySystemName("us-east-2");
+            var client = new AmazonS3Client(cfg);
+
+            S3FileInfo source = new S3FileInfo(client, bucketName, "to-do/13839648_1.jpg");
+            //string bucketName2 = "destination butcket";
+            S3FileInfo destination = new S3FileInfo(client, bucketName, "completed/13839648_1.jpg");
+            source.MoveTo(destination);
+            // 1. Put object-specify only key name for the new object.
+            var putRequest1 = new PutObjectRequest
+            {
+               BucketName = bucketName,
+               Key = "test_sample.txt",
+               ContentBody = "sample text"
+            };
+            PutObjectResponse response1 = await client.PutObjectAsync(putRequest1);
+
+         }
+         catch (AmazonS3Exception e)
+         {
+            logger.Error(e,
+               "Error encountered ***. when writing an object");
+         }
+         catch (Exception e)
+         {
+            logger.Error(e,
+               "Unknown encountered on server. when writing an object");
+         }
+      }
 
       // <summary>
       // LEADOcr
       // </summary>
       // <param name="path">Either a single PDF or a director</param>
+      // <param name="timeout">Time a single page can run</param>
       // <param name="endLevel">Levels are 1: extract image. 2: detect form, 3:</param>
-      static void Main(string path = CertificatePdfSample, int endLevel = 3)
+      static void Main(string path = CertificateDirString, int timeout = 15, int endLevel = 3)
       {
+         //WriteS3().Wait();
+
+         int hadForms = 0;
+         int noForms = 0;
+         int hadErrors = 0;
+
          var stopWatch = new Stopwatch();
+         var stopWatchBig = new Stopwatch();
          stopWatch.Start();
+         stopWatchBig.Start();
          logger.Info($"path={path}, endLevel={endLevel}");
          try
          {
@@ -90,35 +151,46 @@ namespace ElevationCertificateSlicer
             {
                filesToDo.Add(path);
             }
-            else if (Directory.Exists(path))
-            {
-               foreach (var file in Directory.GetFiles(path))
-               {
-                  var fi = new FileInfo(file);
-                  if (fi.Extension == ".pdf" || fi.Extension == ".tif")
-                     filesToDo.Add(file);
-               }
-            }
             else
             {
-               logger.Error($"invalid pdf/dir 'path' parameter: {path}");
-               return;
+               if (Directory.Exists(path))
+               {
+                  foreach (var file in Directory.GetFiles(path))
+                  {
+                     var fi = new FileInfo(file);
+                     if (fi.Extension == ".pdf" || fi.Extension == ".tif")
+                        filesToDo.Add(file);
+                  }
+               }
+               else
+               {
+                  logger.Error($"invalid pdf/dir 'path' parameter: {path}");
+                  return;
+               }
             }
          }
 
          if (filesToDo.Count > 0)
          {
-            var ocrMaster = new OcrMaster();
+            var ocrMaster = new OcrMaster()
+            {
+               PageTimeoutInSeconds = timeout
+            };
             foreach (var pdfFile in filesToDo)
             {
                try
                {
-                  if(filesToDo.Count > 1)
-                     stopWatch.Restart(); 
+                  if (filesToDo.Count > 1)
+                     stopWatch.Restart();
                   var fi = new FileInfo(pdfFile);
                   var stem = Path.GetFileNameWithoutExtension(pdfFile);
                   var dirTiff = Path.Combine(fi.DirectoryName, stem);
                   Directory.CreateDirectory(dirTiff);
+                  logger.Info(
+                     "---------------------------------------------------------------------------------------");
+                  logger.Info(fi.Name);
+                  logger.Info(
+                     "---------------------------------------------------------------------------------------");
 
                   var outFileTemplate = Path.Combine(dirTiff, stem + "_{page}.png");
                   logger.Info(outFileTemplate);
@@ -131,19 +203,29 @@ namespace ElevationCertificateSlicer
                   ocrMaster.ProcessOcr(formResults, pngFiles);
                   var baseName = Path.GetFileNameWithoutExtension(formResults.PdfFileName);
                   var jsonName = Path.Combine(dirTiff, baseName + ".json");
-                  formResults.ElsapsedMilliseconds = stopWatch.ElapsedMilliseconds;
+                  formResults.ElapsedMilliseconds = stopWatch.ElapsedMilliseconds;
                   var json = JsonConvert.SerializeObject(formResults, Formatting.Indented);
                   File.WriteAllText(jsonName, json);
-                  logger.Info($"Writing to {jsonName}, {stopWatch.ElapsedMilliseconds} milliseconds");
-
+                  logger.Info($"Writing to {jsonName}, {stopWatch.ElapsedMilliseconds} milliseconds, {stopWatchBig.Elapsed}");
+                  if (formResults.PagesMappedToForm > 0)
+                  {
+                     hadForms++;
+                     if (formResults.FieldsWithError > 0)
+                        hadErrors++;
+                  }
+                  else
+                  {
+                     noForms++;
+                  }
                }
                catch (Exception e)
                {
-                  logger.Error($"File {pdfFile} error {e}");
+                  logger.Error(e, $"File {pdfFile}");
                }
             }
          }
-         logger.Info($"Completed in {stopWatch.ElapsedMilliseconds} milliseconds");
+         logger.Info(
+            $"Completed f/e/n:{hadForms}/{hadErrors}/{noForms} in {stopWatchBig.Elapsed}");
       }
       public static void TestOcr()
       {
