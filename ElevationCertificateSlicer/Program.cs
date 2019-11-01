@@ -108,8 +108,9 @@ namespace ElevationCertificateSlicer
       // </summary>
       // <param name="path">Either a single PDF or a director</param>
       // <param name="timeout">Time a single page can run</param>
+      // <param name="wildcard">Windows file wildcard</param>
       // <param name="endLevel">Levels are 1: extract image. 2: detect form, 3:</param>
-      static void Main(string path = CertificateDirString, int timeout = 15, int endLevel = 3)
+      static void Main(string path = CertificateDirString, int timeout = 15, string wildcard = "*.pdf", int endLevel = 3)
       {
          //WriteS3().Wait();
 
@@ -155,7 +156,7 @@ namespace ElevationCertificateSlicer
             {
                if (Directory.Exists(path))
                {
-                  foreach (var file in Directory.GetFiles(path))
+                  foreach (var file in Directory.GetFiles(path, wildcard))
                   {
                      var fi = new FileInfo(file);
                      if (fi.Extension == ".pdf" || fi.Extension == ".tif")

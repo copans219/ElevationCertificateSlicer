@@ -79,8 +79,6 @@ namespace ElevationCertificateSlicer
          int b = bp.Vertices.Max(x => x.Y);
          var rect = new Rectangle(new Point(l, t), new Size(r - l, b - t));
          return rect;
-
-
       }
       public static Rectangle Expand(Rectangle r1, BoundingPoly bp)
       {
@@ -507,6 +505,7 @@ namespace ElevationCertificateSlicer
             var json2 = File.ReadAllText(responseFile);
             var response2 = JsonConvert.DeserializeObject<TextAnnotation>(json2);
             int index = 0;
+            float confidence = 1.01f;
             var pageRange = Enumerable.Range(0, response2.Pages.Count);
 
             foreach (var pnum in pageRange)
@@ -516,16 +515,20 @@ namespace ElevationCertificateSlicer
                foreach (var bnum in blockRange)
                {
                   var block = page.Blocks[bnum];
+                  logger.Info($"block {bnum} {block.BoundingBox} paras={block.Paragraphs.Count}");
                   var paraRange = Enumerable.Range(0, block.Paragraphs.Count);
                   foreach (var paraNum in paraRange)
                   {
                      var paragraph = block.Paragraphs[paraNum];
+                     logger.Info($"{paragraph.BoundingBox} {paragraph.CalculateSize()} {paragraph.Words.Count}");
                      var sb = new StringBuilder();
                      Rectangle rect = Rectangle.Empty;
                      var line = new StringBuilder();
 
                      foreach (var word in paragraph.Words)
                      {
+                        if (word.Confidence < confidence)
+                           confidence = word.Confidence;
                         foreach (var symbol in word.Symbols)
                         {
                            line.Append(symbol.Text);
@@ -546,7 +549,7 @@ namespace ElevationCertificateSlicer
                                        break;
                                     case BreakType.EolSureSpace:
                                     case BreakType.LineBreak:
-                                       index = AddTextBox(index, word, line, textBoxes, ref rect);
+                                       index = AddTextBox(index, ref confidence, line, textBoxes, ref rect);
                                        break;
                                     default:
                                        line.Append(" ");
@@ -560,6 +563,8 @@ namespace ElevationCertificateSlicer
                            }
                         }
                      }
+                     if (line.Length > 0)
+                        index = AddTextBox(index, ref confidence, line, textBoxes, ref rect);
 
                      //logger.Info(b.ToString());
                   }
@@ -597,12 +602,13 @@ namespace ElevationCertificateSlicer
          //return boxesBySize.Values.ToList<Box>();
       }
 
-      private static int AddTextBox(int index, Word word, StringBuilder line, List<TextBox> textBoxes, ref Rectangle rect)
+      private static int AddTextBox(int index, ref float confidence, StringBuilder line, List<TextBox> textBoxes, ref Rectangle rect)
       {
          index++;
-         var tb = new TextBox(rect, word.Confidence, line.ToString().Trim(), index);
+         var tb = new TextBox(rect, confidence, line.ToString().Trim(), index);
          textBoxes.Add(tb);
          rect = Rectangle.Empty;
+         confidence = 0.0f;
          line.Clear();
          return index;
       }

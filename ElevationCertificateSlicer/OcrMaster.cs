@@ -14,6 +14,7 @@ using System.Linq;
 using Leadtools;
 using Leadtools.ImageProcessing;
 using System.Threading;
+using Newtonsoft.Json;
 
 namespace ElevationCertificateSlicer
 {
@@ -201,6 +202,7 @@ namespace ElevationCertificateSlicer
 
                   var subDirField = Path.Combine(outDir, "fields");
                   var fileNameFieldOnly = Path.Combine(subDirField, newForm.Name + "_fields.jpg");
+                  var googleResultsFile = Path.Combine(subDirField, newForm.Name + "_google.json");
                   var combined = false;
                   foreach (var field in fields)
                   {
@@ -326,11 +328,15 @@ namespace ElevationCertificateSlicer
                         newForm.Status = $"Error|Field {field.Name} {rect300}: [{ex.Message}]";
                      }
                   }
-
-                  RasterCodecs.Save(fieldsOnlyImage, fileNameFieldOnly, RasterImageFormat.Jpeg, bitsPerPixel: 8);
+                  RasterCodecs.Save(PrepareOmrImage(fieldsOnlyImage), fileNameFieldOnly, RasterImageFormat.Jpeg, bitsPerPixel: 8);
                   var googleResults = GoogleOcr(fileNameFieldOnly);
                   if (googleResults.Count > 0)
+                  {
+                     var json = JsonConvert.SerializeObject(googleResults, Formatting.Indented);
+                     File.WriteAllText(googleResultsFile, json);
+
                      MergeGoogleOcr(newForm, googleResults);
+                  }
 
                   usedMasters.Add(currentMasterBlockForm);
                }
@@ -484,7 +490,7 @@ namespace ElevationCertificateSlicer
          return new LeadRect(x, y, w, h);
 
       }
-   private void PrepareOmrImage(RasterImage omrImage)
+   private RasterImage PrepareOmrImage(RasterImage omrImage)
       {
          var colorResolution =
             new ColorResolutionCommand
@@ -497,6 +503,7 @@ namespace ElevationCertificateSlicer
          colorResolution.Run(omrImage);
          LineRemoveCommand(LineRemoveCommandType.Horizontal, omrImage);
          LineRemoveCommand(LineRemoveCommandType.Vertical, omrImage);
+         return omrImage;
       }
 
       public void CleanupImage(RasterImage imageToClean)
