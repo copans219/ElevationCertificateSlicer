@@ -59,7 +59,7 @@ namespace ElevationCertificateSlicer
             RasterImage tifImage = null;
             if (!File.Exists(binFile))
             {
-               string imageName = String.Concat(Path.GetFileNameWithoutExtension(masterFormField), ".tif");
+               string imageName = String.Concat(Path.GetFileNameWithoutExtension(masterFormField), ".png");
                string imagefullPath = Path.Combine(Path.GetDirectoryName(masterFormField), imageName);
                tifImage =
                   RasterCodecs.Load(imagefullPath, 0, CodecsLoadByteOrder.BgrOrGray, 1, -1);
@@ -201,7 +201,7 @@ namespace ElevationCertificateSlicer
                   //fieldsOnlyImage  = new RasterImage(RasterMemoryFlags.Conventional, centeredImage.Width, centeredImage.Height, centeredInage.BitsPerPixel, RasterByteOrder.Rgb, RasterViewPerspective.TopLeft, null, null, 0);
 
                   var subDirField = Path.Combine(outDir, "fields");
-                  var fileNameFieldOnly = Path.Combine(subDirField, newForm.Name + "_fields.jpg");
+                  var fileNameFieldOnly = Path.Combine(subDirField, newForm.Name + "_fields.png");
                   var googleResultsFile = Path.Combine(subDirField, newForm.Name + "_google.json");
                   var combined = false;
                   foreach (var field in fields)
@@ -227,7 +227,7 @@ namespace ElevationCertificateSlicer
 
                         var image = imageInfoToUse.Image.CloneAll();
                         var subDir = Path.Combine(outDir, isBlock ? "blocks" : "fields");
-                        var fileName = Path.Combine(subDir, newForm.Name + "_" + field.Name + ".jpg");
+                        var fileName = Path.Combine(subDir, newForm.Name + "_" + field.Name + ".png");
                         var imageField = new ImageField
                         {
                            Field = field,
@@ -252,7 +252,7 @@ namespace ElevationCertificateSlicer
                               Rectangle = rect300
                            };
                            command.Run(image);
-                           RasterCodecs.Save(image, fileName, RasterImageFormat.Jpeg, bitsPerPixel: 8);
+                           RasterCodecs.Save(image, fileName, RasterImageFormat.Png, bitsPerPixel: 24);
                            if (!isBlock && zoneType == OcrZoneType.Text && !combined)
                            {
                               try
@@ -328,7 +328,9 @@ namespace ElevationCertificateSlicer
                         newForm.Status = $"Error|Field {field.Name} {rect300}: [{ex.Message}]";
                      }
                   }
-                  RasterCodecs.Save(PrepareOmrImage(fieldsOnlyImage), fileNameFieldOnly, RasterImageFormat.Jpeg, bitsPerPixel: 8);
+                  RasterCodecs.Save(PrepareOmrImage(fieldsOnlyImage), fileNameFieldOnly, RasterImageFormat.Png, bitsPerPixel: 24);
+                  //Thread.Sleep(1000);
+                  //fileNameFieldOnly = @"C:\OCR\99014600682018_02_fields.png";
                   var googleResults = GoogleOcr(fileNameFieldOnly);
                   if (googleResults.Count > 0)
                   {

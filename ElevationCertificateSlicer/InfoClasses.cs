@@ -486,7 +486,7 @@ namespace ElevationCertificateSlicer
             //  var file = @"F:\Dropbox\OCR\Single\data\13864584_3_ocr~20181130_page3pdf.png";
             var responseFile = file + ".google.response.json";
             int num = 0;
-            if (!File.Exists(responseFile))
+            if (!File.Exists(responseFile) || true)
             {
                var image = Google.Cloud.Vision.V1.Image.FromFile(file);
 
