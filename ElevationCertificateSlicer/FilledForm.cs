@@ -26,6 +26,7 @@ namespace ElevationCertificateSlicer
       public int Resolution = 300;
       public long ElapsedMilliseconds;
       public string OriginalDirectoryName;
+      public List<string> S3FilesToCopy = new List<string>();
       public List<string> TimedOutPages = new List<string>();
       public List<int> BestFormConfidence = new List<int>();
       public int PagesInPdf;

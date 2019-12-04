@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using System.Text;
+using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using Leadtools;
 using Leadtools.Codecs;
@@ -17,15 +17,34 @@ using Newtonsoft.Json;
 using System.Diagnostics;
 using System.Security.Permissions;
 using Newtonsoft.Json.Linq;
-
+using NLog;
 using Amazon.S3;
+using Amazon.S3.Transfer;
 using Amazon.S3.Model;
 using Amazon;
 using Amazon.Internal;
 using Amazon.S3.IO;
+using NLog.Targets;
 
 namespace ElevationCertificateSlicer
 {
+   public class S3FileName
+   {
+      public string[] Folders;
+      public string Prefix;
+      public string Name;
+      public string Key;
+      public string Stem;
+      public S3FileName(string key)
+      {
+         Key = key;
+         var dirs = Folders = key.Split('/');
+         Name = dirs[dirs.Length - 1];
+         Folders = dirs.Take(dirs.Length - 1).ToArray();
+         Prefix = key.Substring(0, key.Length - Name.Length);
+         Stem = Path.GetFileNameWithoutExtension(Name);
+      }
+   }
    class Program
    {
       public const string
@@ -77,9 +96,9 @@ namespace ElevationCertificateSlicer
             //var bucketRegion = RegionEndpoint.GetBySystemName("us-east-2");
             var client = new AmazonS3Client(cfg);
 
-            S3FileInfo source = new S3FileInfo(client, bucketName, "to-do/13839648_1.jpg");
+            S3FileInfo source = new S3FileInfo(client, bucketName, "completed/13839648_1.jpg");
             //string bucketName2 = "destination butcket";
-            S3FileInfo destination = new S3FileInfo(client, bucketName, "completed/13839648_1.jpg");
+            S3FileInfo destination = new S3FileInfo(client, bucketName, "to-do/13839648_1.jpg");
             source.MoveTo(destination);
             // 1. Put object-specify only key name for the new object.
             var putRequest1 = new PutObjectRequest
@@ -103,15 +122,91 @@ namespace ElevationCertificateSlicer
          }
       }
 
+      static List<string> GetDirS3(string folder, string outDirectory, Regex wildcard, int numberToDo = 1)
+      {
+         logger.Info($"wild card {wildcard}");
+         var retList = new List<string>();
+         try
+         {
+            AmazonS3Config cfg = new AmazonS3Config
+            {
+               RegionEndpoint = Amazon.RegionEndpoint.USEast2  //bucket location
+            };
+
+
+            //var bucketRegion = RegionEndpoint.GetBySystemName("us-east-2");
+            using (var s3Client = new AmazonS3Client(cfg))
+            using (var transferUtility = new TransferUtility(s3Client))
+            {
+
+               var request = new ListObjectsRequest
+               {
+                  BucketName = bucketName,
+                  Prefix = folder
+               };
+               var response = s3Client.ListObjects(request);
+               foreach (S3Object obj in response.S3Objects)
+               {
+                  if (wildcard.IsMatch(obj.Key))
+                  {
+                     var fi = new S3FileInfo(s3Client, bucketName, obj.Key);
+                     if (fi.Type == FileSystemType.File)
+                     {
+                        var fileOrig = new S3FileName(obj.Key);
+                        var newFolder = "working/";
+                        var workingName = new S3FileName(newFolder + fileOrig.Name); // obj.Key.Replace(request.Prefix, newFolder);
+                        S3FileInfo source = new S3FileInfo(s3Client, bucketName, fileOrig.Key);
+                        //string bucketName2 = "destination butcket";
+                        S3FileInfo destination = new S3FileInfo(s3Client, bucketName, workingName.Key);
+                        logger.Info($"moving {fileOrig.Name} to {newFolder}");
+                        source.MoveTo(destination);
+                        var filePath = Path.Combine(outDirectory, workingName.Name);
+                        if (File.Exists(filePath))
+                        {
+                           File.Delete(filePath);
+                        }
+                        var transferRequest = new TransferUtilityDownloadRequest
+                        {
+                           BucketName = bucketName,
+                           FilePath = filePath,
+                           Key = workingName.Key
+                        };
+                        transferUtility.Download(transferRequest);
+                        retList.Add(filePath);
+                        if (retList.Count >= numberToDo)
+                        {
+                           break;
+                        }
+                     }
+                  }
+               }
+            }
+         }
+         catch (AmazonS3Exception e)
+         {
+            logger.Error(e,
+               "Error encountered ***. when getting S3 dir an object");
+         }
+         catch (Exception e)
+         {
+            logger.Error(e,
+               "Unknown encountered on server. when writing an object");
+         }
+         return retList;
+      }
+      // <param name="useS3">use todo for source, and then path is scratch</param>
+
       // <summary>
       // LEADOcr
       // </summary>
-      // <param name="path">Either a single PDF or a director</param>
+      // <param name="path">Either a single PDF or a directory</param>
       // <param name="timeout">Time a single page can run</param>
       // <param name="wildcard">Windows file wildcard</param>
-      // <param name="endLevel">Levels are 1: extract image. 2: detect form, 3:</param>
-      static void Main(string path = CertificateDirString, int timeout = 15, string wildcard = "*.pdf", int endLevel = 3)
+      // <param name="todo">number of files todo for S3 (implies useS3)</param>
+      static void Main( string path = CertificateDirString, int timeout = 15, string wildcard = "*.pdf", int todo = 0)
       {
+         logger.Info($"path={path}, wildcard={wildcard}, todo={todo}");
+         var useS3 = todo > 0;
          //WriteS3().Wait();
 
          int hadForms = 0;
@@ -122,7 +217,6 @@ namespace ElevationCertificateSlicer
          var stopWatchBig = new Stopwatch();
          stopWatch.Start();
          stopWatchBig.Start();
-         logger.Info($"path={path}, endLevel={endLevel}");
          try
          {
             string licString =
@@ -146,30 +240,42 @@ namespace ElevationCertificateSlicer
          var dataDirectory = System.IO.Path.GetDirectoryName(System.Reflection.Assembly.GetExecutingAssembly().Location);
          logger.Info($"dir = {dataDirectory}");
          var filesToDo = new List<string>();
-         if (path != null)
+         if (useS3)
          {
-            if (File.Exists(path))
+            
+            filesToDo = GetDirS3("to-do/", path, new Regex(@".*/" + wildcard.Replace("*",".*")), todo);
+            filesToDo.Sort();
+         }
+         else
+         {
+
+            if (path != null)
             {
-               filesToDo.Add(path);
-            }
-            else
-            {
-               if (Directory.Exists(path))
+               if (File.Exists(path))
                {
-                  foreach (var file in Directory.GetFiles(path, wildcard))
-                  {
-                     var fi = new FileInfo(file);
-                     if (fi.Extension == ".pdf" || fi.Extension == ".tif")
-                        filesToDo.Add(file);
-                  }
+                  filesToDo.Add(path);
                }
                else
                {
-                  logger.Error($"invalid pdf/dir 'path' parameter: {path}");
-                  return;
+                  if (Directory.Exists(path))
+                  {
+                     foreach (var file in Directory.GetFiles(path, wildcard))
+                     {
+                        var fi = new FileInfo(file);
+                        if (fi.Extension == ".pdf" || fi.Extension == ".tif")
+                           filesToDo.Add(file);
+                     }
+                  }
+                  else
+                  {
+                     logger.Error($"invalid pdf/dir 'path' parameter: {path}");
+                     return;
+                  }
                }
             }
          }
+         var targetOriginal = (FileTarget)LogManager.Configuration.FindTargetByName("logfile");
+         var targetFileOrig = targetOriginal.FileName;
 
          if (filesToDo.Count > 0)
          {
@@ -179,14 +285,25 @@ namespace ElevationCertificateSlicer
             };
             foreach (var pdfFile in filesToDo)
             {
+               int errors = 0;
+               if (filesToDo.Count > 1)
+                  stopWatch.Restart();
+               var fi = new FileInfo(pdfFile);
+               var stem = Path.GetFileNameWithoutExtension(pdfFile);
+               var dirTiff = Path.Combine(fi.DirectoryName, stem);
+               Directory.CreateDirectory(dirTiff);
+               var formResults = new ResultsForPrettyJson()
+               {
+                  PdfFileName = fi.Name,
+                  OriginalDirectoryName = dirTiff,
+               };
+               var target = (FileTarget)LogManager.Configuration.FindTargetByName("logfile");
+               var logName = "logFile.txt";
+               target.FileName = Path.Combine(dirTiff, logName);
+               formResults.S3FilesToCopy.Add(logName);
+               LogManager.ReconfigExistingLoggers(); 
                try
                {
-                  if (filesToDo.Count > 1)
-                     stopWatch.Restart();
-                  var fi = new FileInfo(pdfFile);
-                  var stem = Path.GetFileNameWithoutExtension(pdfFile);
-                  var dirTiff = Path.Combine(fi.DirectoryName, stem);
-                  Directory.CreateDirectory(dirTiff);
                   logger.Info(
                      "---------------------------------------------------------------------------------------");
                   logger.Info(fi.Name);
@@ -196,17 +313,15 @@ namespace ElevationCertificateSlicer
                   var outFileTemplate = Path.Combine(dirTiff, stem + "_{page}.png");
                   logger.Info(outFileTemplate);
                   var pngFiles = ConvertDocumentToImage(pdfFile, outFileTemplate, RasterImageFormat.Png, 8, null);
-                  var formResults = new ResultsForPrettyJson()
-                  {
-                     PdfFileName = fi.Name,
-                     OriginalDirectoryName = dirTiff,
-                  };
-                  ocrMaster.ProcessOcr(formResults, pngFiles);
+                  ocrMaster.ProcessOcr(formResults, pngFiles, useS3);
                   var baseName = Path.GetFileNameWithoutExtension(formResults.PdfFileName);
-                  var jsonName = Path.Combine(dirTiff, baseName + ".json");
+                  var jsonBaseName = baseName + ".json";
+                  formResults.S3FilesToCopy.Add(jsonBaseName);
+                  var jsonName = Path.Combine(dirTiff, jsonBaseName);
                   formResults.ElapsedMilliseconds = stopWatch.ElapsedMilliseconds;
                   var json = JsonConvert.SerializeObject(formResults, Formatting.Indented);
                   File.WriteAllText(jsonName, json);
+
                   logger.Info($"Writing to {jsonName}, {stopWatch.ElapsedMilliseconds} milliseconds, {stopWatchBig.Elapsed}");
                   if (formResults.PagesMappedToForm > 0)
                   {
@@ -218,11 +333,59 @@ namespace ElevationCertificateSlicer
                   {
                      noForms++;
                   }
+                  errors = formResults.TimedOutPages.Count + formResults.FieldsWithError;
                }
                catch (Exception e)
                {
+                  errors += 1;
                   logger.Error(e, $"File {pdfFile}");
                }
+               targetOriginal.FileName = targetFileOrig;
+               LogManager.ReconfigExistingLoggers();
+               if (useS3)
+               {
+                  try {
+                     var targetFolderUpper = errors > 0 ? "error/" : "completed/";
+                     var targetFolder = targetFolderUpper + stem + "/";
+                     AmazonS3Config cfg = new AmazonS3Config
+                     {
+                        RegionEndpoint = Amazon.RegionEndpoint.USEast2  //bucket location
+                     };
+
+                     using (var s3Client = new AmazonS3Client(cfg))
+                     using (var transferUtility = new TransferUtility(s3Client))
+                     {
+
+                        S3DirectoryInfo directoryToDelete = new S3DirectoryInfo(s3Client, bucketName, targetFolder);
+                        if(directoryToDelete.Exists)
+                           directoryToDelete.Delete(true); // true will delete recursively in folder inside
+                        foreach (var file in formResults.S3FilesToCopy)
+                        {
+                           var filePath = Path.Combine(dirTiff, file);
+                           var key = targetFolder + file.Replace(@"\", "/");
+                           var transferRequest = new TransferUtilityUploadRequest
+                           {
+                              BucketName = bucketName,
+                              FilePath = filePath,
+                              Key = key
+                           };
+                           logger.Info($"upload {filePath} to  {key}");
+                           transferUtility.Upload(transferRequest);
+                        }
+                        S3FileInfo source = new S3FileInfo(s3Client, bucketName, "working/" + fi.Name);
+                        //string bucketName2 = "destination butcket";
+                        S3FileInfo destination = new S3FileInfo(s3Client, bucketName, targetFolderUpper + fi.Name);
+                        logger.Info($"remove from working {source} to {destination}");
+                        source.MoveTo(destination);
+
+                     }
+                  }
+                  catch(Exception ex)
+                  {
+                     logger.Error(ex, "Error trying to copy to S3");
+                  }
+               }
+
             }
          }
          logger.Info(

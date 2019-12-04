@@ -103,7 +103,7 @@ namespace ElevationCertificateSlicer
         pars.Attributes = PrepareNewForm(pars.ImageInfo, pars.StopWatch, pars.Form);
      }
      public List<FilledForm> ProcessOcr(ResultsForPrettyJson formResults, 
-         List<ImageInfo> fileInfos)
+         List<ImageInfo> fileInfos, bool useS3)
       {
          try
          {
@@ -226,8 +226,10 @@ namespace ElevationCertificateSlicer
                            zoneType = OcrZoneType.Graphic;
 
                         var image = imageInfoToUse.Image.CloneAll();
-                        var subDir = Path.Combine(outDir, isBlock ? "blocks" : "fields");
-                        var fileName = Path.Combine(subDir, newForm.Name + "_" + field.Name + ".png");
+                        var subFolder = isBlock ? "blocks" : "fields";
+                        var subDir = Path.Combine(outDir, subFolder);
+                        var imageFileName = newForm.Name + "_" + field.Name + ".png";
+                        var fileName = Path.Combine(subDir, imageFileName );
                         var imageField = new ImageField
                         {
                            Field = field,
@@ -252,7 +254,11 @@ namespace ElevationCertificateSlicer
                               Rectangle = rect300
                            };
                            command.Run(image);
-                           RasterCodecs.Save(image, fileName, RasterImageFormat.Png, bitsPerPixel: 24);
+                           if (isBlock)
+                           {
+                              RasterCodecs.Save(image, fileName, RasterImageFormat.Png, bitsPerPixel: 8);
+                              formResults.S3FilesToCopy.Add($"{subFolder}/{imageFileName}");
+                           }
                            if (!isBlock && zoneType == OcrZoneType.Text && !combined)
                            {
                               try
@@ -294,8 +300,6 @@ namespace ElevationCertificateSlicer
                                  ocrPage.Recognize(null);
                                  if (zoneType == OcrZoneType.Omr)
                                  {
-                                    if (field.Name.Contains("C2NGVD1929"))
-                                       logger.Info(ocrZone.Bounds);
                                     GetOmrReading(ocrPage, field, imageField);
                                  }
                                  else if (zoneType == OcrZoneType.Text)
@@ -328,7 +332,7 @@ namespace ElevationCertificateSlicer
                         newForm.Status = $"Error|Field {field.Name} {rect300}: [{ex.Message}]";
                      }
                   }
-                  RasterCodecs.Save(PrepareOmrImage(fieldsOnlyImage), fileNameFieldOnly, RasterImageFormat.Png, bitsPerPixel: 24);
+                  RasterCodecs.Save(PrepareOmrImage(fieldsOnlyImage), fileNameFieldOnly, RasterImageFormat.Png, bitsPerPixel: 8);
                   //Thread.Sleep(1000);
                   //fileNameFieldOnly = @"C:\OCR\99014600682018_02_fields.png";
                   var googleResults = GoogleOcr(fileNameFieldOnly);
