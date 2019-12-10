@@ -15,6 +15,7 @@ using Leadtools;
 using Leadtools.ImageProcessing;
 using System.Threading;
 using Newtonsoft.Json;
+using Google.Cloud.Vision.V1;
 
 namespace ElevationCertificateSlicer
 {
@@ -40,7 +41,7 @@ namespace ElevationCertificateSlicer
       public OcrEngineType OcrEngineType;
       private Stopwatch _recognitionTimer = new Stopwatch();
       private static readonly NLog.Logger logger = NLog.LogManager.GetCurrentClassLogger();
-     /// <summary>
+      /// <summary>
       /// OcrMaster load master forms and start engines
       /// </summary>
       public OcrMaster()
@@ -51,7 +52,7 @@ namespace ElevationCertificateSlicer
          {
             throw new Exception("Could not start engines");
          }
- 
+
          foreach (string masterFormField in masterFormFields)
          {
             if (masterFormField.Contains("_runtime.")) continue;
@@ -78,8 +79,8 @@ namespace ElevationCertificateSlicer
                //binFiles.Add(binFile);
             }
             logger.Info($"Loading master form {masterFormField}");
-            
-            
+
+
             var currentMasterForm = LoadMasterForm(binFile, masterFormField);
 
             var formList = BlockMasterForms;
@@ -88,22 +89,22 @@ namespace ElevationCertificateSlicer
          }
       }
 
-     public class FormThreadCallParams
-     {
-        public ImageInfo ImageInfo;
-        public Stopwatch StopWatch;
-        public FilledForm Form;
-        public FormRecognitionAttributes Attributes;
+      public class FormThreadCallParams
+      {
+         public ImageInfo ImageInfo;
+         public Stopwatch StopWatch;
+         public FilledForm Form;
+         public FormRecognitionAttributes Attributes;
 
-     }
+      }
 
-     public void PrepareNewFormThreader(object obj)
-     {
-        var pars = (FormThreadCallParams)obj;
-        pars.Attributes = PrepareNewForm(pars.ImageInfo, pars.StopWatch, pars.Form);
-     }
-     public List<FilledForm> ProcessOcr(ResultsForPrettyJson formResults, 
-         List<ImageInfo> fileInfos, bool useS3)
+      public void PrepareNewFormThreader(object obj)
+      {
+         var pars = (FormThreadCallParams)obj;
+         pars.Attributes = PrepareNewForm(pars.ImageInfo, pars.StopWatch, pars.Form);
+      }
+      public List<FilledForm> ProcessOcr(ResultsForPrettyJson formResults,
+          List<ImageInfo> fileInfos, bool useS3)
       {
          try
          {
@@ -128,7 +129,9 @@ namespace ElevationCertificateSlicer
                //CleanupImage(ofi.Image);
                var par = new FormThreadCallParams()
                {
-                  ImageInfo = ofi, StopWatch = stopWatch, Form = newForm
+                  ImageInfo = ofi,
+                  StopWatch = stopWatch,
+                  Form = newForm
                };
                if (PageTimeoutInSeconds < 50)
                {
@@ -186,10 +189,10 @@ namespace ElevationCertificateSlicer
                   var centeredImage = ofi.Image.CloneAll();
 
                   CleanupImage(centeredImage);
-                  newForm.ImageInfoMaster.CenteredImage = new ImageInfo() {Image = centeredImage};
+                  newForm.ImageInfoMaster.CenteredImage = new ImageInfo() { Image = centeredImage };
                   var omrImage = centeredImage.CloneAll();
                   PrepareOmrImage(omrImage);
-                  newForm.ImageInfoMaster.OmrImage = new ImageInfo() {Image = omrImage};
+                  newForm.ImageInfoMaster.OmrImage = new ImageInfo() { Image = omrImage };
                   newForm.Status = "Matched";
                   newForm.Master = currentMasterBlockForm;
                   var alignment =
@@ -229,7 +232,7 @@ namespace ElevationCertificateSlicer
                         var subFolder = isBlock ? "blocks" : "fields";
                         var subDir = Path.Combine(outDir, subFolder);
                         var imageFileName = newForm.Name + "_" + field.Name + ".png";
-                        var fileName = Path.Combine(subDir, imageFileName );
+                        var fileName = Path.Combine(subDir, imageFileName);
                         var imageField = new ImageField
                         {
                            Field = field,
@@ -244,7 +247,7 @@ namespace ElevationCertificateSlicer
                               Error = "None"
                            }
                         };
-                        imageField.Rectangle = new Rectangle( rect300.X,rect300.Y, rect300.Width, rect300.Height);
+                        imageField.Rectangle = new Rectangle(rect300.X, rect300.Y, rect300.Width, rect300.Height);
 
                         try
                         {
@@ -254,9 +257,9 @@ namespace ElevationCertificateSlicer
                               Rectangle = rect300
                            };
                            command.Run(image);
+                           RasterCodecs.Save(image, fileName, RasterImageFormat.Png, bitsPerPixel: 8);
                            if (isBlock)
                            {
-                              RasterCodecs.Save(image, fileName, RasterImageFormat.Png, bitsPerPixel: 8);
                               formResults.S3FilesToCopy.Add($"{subFolder}/{imageFileName}");
                            }
                            if (!isBlock && zoneType == OcrZoneType.Text && !combined)
@@ -269,7 +272,7 @@ namespace ElevationCertificateSlicer
                                  combiner.SourceImage = image.Clone();
                                  combiner.DestinationRectangle = rect300;
                                  var regionBounds = image.GetRegionBounds(null);
-                                 combiner.SourcePoint = new LeadPoint(regionBounds.X, regionBounds.Y); 
+                                 combiner.SourcePoint = new LeadPoint(regionBounds.X, regionBounds.Y);
                                  //combiner.Flags = CombineCommandFlags.OperationAdd | CombineCommandFlags.Destination0 | CombineCommandFlags.Source1 | CombineCommandFlags.Destination0 ;
 
                                  combiner.Flags = CombineCommandFlags.OperationOr | CombineCommandFlags.Destination0; ; // |CombineFastCommandFlags.OperationAverage;
@@ -282,7 +285,7 @@ namespace ElevationCertificateSlicer
                               }
                            }
 
-                           var imageInfo = new ImageInfo() {Image = image, ImageFileInfo = new FileInfo(fileName)};
+                           var imageInfo = new ImageInfo() { Image = image, ImageFileInfo = new FileInfo(fileName) };
                            imageField.ImageInfo = imageInfo;
 
                            if (!isBlock && zoneType != OcrZoneType.Graphic)
@@ -292,22 +295,55 @@ namespace ElevationCertificateSlicer
                                  OcrZone ocrZone = new OcrZone
                                  {
                                     ZoneType = zoneType,
-                                    Bounds = new LeadRect(fudge, fudge, image.ImageSize.Width - fudge,
-                                       image.ImageSize.Height - fudge)
+                                    Bounds = new LeadRect(fudge, fudge, image.ImageSize.Width - fudge * 2,
+                                       image.ImageSize.Height - fudge * 2)
                                  };
-                                 ocrPage.Zones.Add(ocrZone);
-
-                                 ocrPage.Recognize(null);
-                                 if (zoneType == OcrZoneType.Omr)
+                                 int steps = 0;
+                                 try
                                  {
-                                    GetOmrReading(ocrPage, field, imageField);
+                                    steps++;
+                                    ocrPage.Zones.Add(ocrZone);
+                                    steps++;
+                                    ocrPage.Recognize(null);
+                                    steps++;
+                                    if (zoneType == OcrZoneType.Omr)
+                                    {
+                                       GetOmrReading(ocrPage, field, imageField);
+                                    }
+                                    else if (zoneType == OcrZoneType.Text)
+                                    {
+                                       var resultsPage = GetPageConfidence(ocrPage);
+                                       steps++;
+                                       imageField.FieldResult.Confidence = resultsPage.Confidence;
+                                       char[] crlf = { '\r', '\n' };
+                                       steps++;
+                                       imageField.FieldResult.Text = ocrPage.GetText(0).TrimEnd(crlf);
+                                    }
                                  }
-                                 else if (zoneType == OcrZoneType.Text)
+                                 catch (Exception exNochange)
                                  {
-                                    var resultsPage = GetPageConfidence(ocrPage);
-                                    imageField.FieldResult.Confidence = resultsPage.Confidence;
-                                    char[] crlf = {'\r', '\n'};
-                                    imageField.FieldResult.Text = ocrPage.GetText(0).TrimEnd(crlf);
+                                    bool fatalError = true;
+                                    foreach (var okError in new string[] { "The image has not changed", "Invalid width or height" })
+                                    {
+
+                                       if (exNochange.Message.Contains(okError))
+                                       {
+                                          logger.Error(exNochange, $"{okError} treated as blank {zoneType} {ocrZone.Bounds} for {field.Name}, steps {steps} [{fileName}]");
+                                          imageField.FieldResult.Text = "";
+                                          imageField.FieldResult.Confidence = 0;
+                                          if (zoneType == OcrZoneType.Omr)
+                                          {
+                                             imageField.FieldResult.IsFilled = false;
+                                          }
+                                          fatalError = false;
+                                          break;
+                                       }
+                                    }
+                                    if (fatalError)
+                                    {
+                                       formResults.FieldsWithError++;
+                                       logger.Error(exNochange, $"Error where expected Image not changed .added ocrZone {ocrZone} for {field.Name}, steps {steps} {fileName}");
+                                    }
                                  }
                               }
                            }
@@ -335,15 +371,30 @@ namespace ElevationCertificateSlicer
                   RasterCodecs.Save(PrepareOmrImage(fieldsOnlyImage), fileNameFieldOnly, RasterImageFormat.Png, bitsPerPixel: 8);
                   //Thread.Sleep(1000);
                   //fileNameFieldOnly = @"C:\OCR\99014600682018_02_fields.png";
-                  var googleResults = GoogleOcr(fileNameFieldOnly);
-                  if (googleResults.Count > 0)
+                  try
                   {
-                     var json = JsonConvert.SerializeObject(googleResults, Formatting.Indented);
-                     File.WriteAllText(googleResultsFile, json);
+                     var googleBoxes = GoogleDetectText(new FileInfo(fileNameFieldOnly));
+                     if (googleBoxes.Count > 0)
+                     {
+                        var json = JsonConvert.SerializeObject(googleBoxes, Formatting.Indented);
+                        File.WriteAllText(googleResultsFile, json);
+                        MergeGoogleOcrBox(newForm, googleBoxes);
+                     }
+                     /*
+                     var googleResults = GoogleOcr(fileNameFieldOnly);
+                     if (googleResults.Count > 0)
+                     {
+                        var json = JsonConvert.SerializeObject(googleResults, Formatting.Indented);
+                        File.WriteAllText(googleResultsFile, json);
 
-                     MergeGoogleOcr(newForm, googleResults);
+                        MergeGoogleOcr(newForm, googleResults);
+                     }
+                     */
                   }
-
+                  catch (Exception ex)
+                  {
+                     logger.Warn(ex, $"Warning: could not do google check on {fileNameFieldOnly}");
+                  }
                   usedMasters.Add(currentMasterBlockForm);
                }
                else
@@ -369,55 +420,121 @@ namespace ElevationCertificateSlicer
             return null;
          }
       }
+      private RasterImage PrepareOmrImage(RasterImage omrImage)
+      {
+         var colorResolution =
+            new ColorResolutionCommand
+            {
+               BitsPerPixel = 1,
+               DitheringMethod = Leadtools.RasterDitheringMethod.None,
+               PaletteFlags = Leadtools.ImageProcessing.ColorResolutionCommandPaletteFlags.Fixed
+            };
 
-     private static void MergeGoogleOcr(FilledForm newForm, List<TextBox> googleResults)
-     {
-        foreach (var field in newForm.ImageFields.Where(x => x.FieldResult.FieldType == "Text" &&
-                                                             !x.Field.Name.Contains("block")))
-        {
-           if (field.FieldResult?.Text == null)
-              continue;
-           int bestScore = 10000; // lower is better
-           TextBox bestGoogleBox = null;
-           var perfectScores = new List<TextBox>();
-           foreach (var gr in googleResults)
-           {
-              var score = field.CalcRectangleMatchScore(gr.Rect);
-              if (field.FieldResult.Text.Length > 2)
-                 logger.Info(
-                    $"{score} [{gr.Description}] {gr.Bounds} {field.Rectangle} [{field.FieldResult.Text}]");
-              if (score <= bestScore)
-              {
-                 if (bestScore == 0)
-                 {
-                    logger.Info($"second perfect score");
-                 }
+         colorResolution.Run(omrImage);
+         LineRemoveCommand(LineRemoveCommandType.Horizontal, omrImage);
+         LineRemoveCommand(LineRemoveCommandType.Vertical, omrImage);
+         return omrImage;
+      }
 
-                 bestScore = score;
-                 bestGoogleBox = gr;
-                 if (score == 0)
-                 {
-                    perfectScores.Add(gr);
-                 }
-              }
-           }
 
-           if (bestScore < 30)
-           {
-              field.FieldResult.GoogleConfidence = bestGoogleBox.Confidence * 100.0;
-              field.FieldResult.GoogleText = bestGoogleBox.Description;
-              if (perfectScores.Count > 1)
-              {
-                 field.FieldResult.GoogleConfidence =
-                    perfectScores.Min(x => x.Confidence * 100.0);
-                 field.FieldResult.GoogleText =
-                    perfectScores.Select(x => x.Description).Aggregate("", (a, b) => a + " " + b);
-              }
-           }
-        }
-     }
+      private static void MergeGoogleOcrBox(FilledForm newForm, List<Box> googleResults)
+      {
+         foreach (var field in newForm.ImageFields.Where(x => x.FieldResult.FieldType == "Text" &&
+                                                              !x.Field.Name.Contains("block")))
+         {
+            if (field.FieldResult?.Text == null)
+               continue;
+            int bestScore = 10000; // lower is better
+            Box bestGoogleBox = null;
+            var perfectScores = new List<Box>();
+            foreach (var gr in googleResults)
+            {
+               var score = field.CalcRectangleMatchScore(gr.Rect);
+               if (field.FieldResult.Text.Length > 2)
+                  logger.Info(
+                     $"{score} [{gr.Description}] {gr.Bounds} {field.Rectangle} [{field.FieldResult.Text}]");
+               if (score <= bestScore)
+               {
+                  if (bestScore == 0)
+                  {
+                     logger.Info($"second perfect score");
+                  }
 
-     private FormRecognitionAttributes PrepareNewForm(ImageInfo ofi, Stopwatch stopWatch, FilledForm newForm)
+                  bestScore = score;
+                  bestGoogleBox = gr;
+                  if (score == 0)
+                  {
+                     perfectScores.Add(gr);
+                  }
+               }
+            }
+            if (bestScore < 30)
+            {
+               //field.FieldResult.GoogleConfidence = bestGoogleBox.Confidence * 100.0;
+               field.FieldResult.GoogleText = bestGoogleBox.Description;
+               if (perfectScores.Count > 1)
+               {
+                  //field.FieldResult.GoogleConfidence =
+                  //perfectScores.Min(x => x.Confidence * 100.0);
+                  field.FieldResult.GoogleText =
+                     perfectScores.Select(x => x.Description).Aggregate("", (a, b) => a + " " + b);
+                  //logger.Debug($"{field.Field.Name} [{field.FieldResult.GoogleText}] {file");
+               }
+               field.FieldResult.GoogleText = field.FieldResult.GoogleText.Trim();
+               field.FieldResult.GoogleConfirms = field.FieldResult.Text == field.FieldResult.GoogleText ? "YES" : "no";
+            }
+         }
+      }
+
+
+      private static void MergeGoogleOcr(FilledForm newForm, List<TextBox> googleResults)
+      {
+         foreach (var field in newForm.ImageFields.Where(x => x.FieldResult.FieldType == "Text" &&
+                                                              !x.Field.Name.Contains("block")))
+         {
+            if (field.FieldResult?.Text == null)
+               continue;
+            int bestScore = 10000; // lower is better
+            TextBox bestGoogleBox = null;
+            var perfectScores = new List<TextBox>();
+            foreach (var gr in googleResults)
+            {
+               var score = field.CalcRectangleMatchScore(gr.Rect);
+               if (field.FieldResult.Text.Length > 2)
+                  logger.Info(
+                     $"{score} [{gr.Description}] {gr.Bounds} {field.Rectangle} [{field.FieldResult.Text}]");
+               if (score <= bestScore)
+               {
+                  if (bestScore == 0)
+                  {
+                     logger.Info($"second perfect score");
+                  }
+
+                  bestScore = score;
+                  bestGoogleBox = gr;
+                  if (score == 0)
+                  {
+                     perfectScores.Add(gr);
+                  }
+               }
+            }
+
+            if (bestScore < 30)
+            {
+               field.FieldResult.GoogleConfidence = bestGoogleBox.Confidence * 100.0;
+               field.FieldResult.GoogleText = bestGoogleBox.Description;
+               if (perfectScores.Count > 1)
+               {
+                  field.FieldResult.GoogleConfidence =
+                     perfectScores.Min(x => x.Confidence * 100.0);
+                  field.FieldResult.GoogleText =
+                     perfectScores.Select(x => x.Description).Aggregate("", (a, b) => a + " " + b);
+               }
+            }
+         }
+      }
+
+      private FormRecognitionAttributes PrepareNewForm(ImageInfo ofi, Stopwatch stopWatch, FilledForm newForm)
       {
          try
          {
@@ -451,7 +568,7 @@ namespace ElevationCertificateSlicer
       private void GetOmrReading(IOcrPage ocrPage, FormField field, ImageField imageField, int retry = 1)
       {
          IOcrPageCharacters pageCharacters = ocrPage.GetRecognizedCharacters();
-            
+
          if (pageCharacters == null)
          {
             logger.Warn($"could not read OMR for ${field} ");
@@ -486,7 +603,6 @@ namespace ElevationCertificateSlicer
             }
          }
       }
-
       public static LeadRect ChangeBoundsRatio(LeadRect rect, double ratio)
       {
          int w = (int)(rect.Width * ratio);
@@ -496,22 +612,6 @@ namespace ElevationCertificateSlicer
          return new LeadRect(x, y, w, h);
 
       }
-   private RasterImage PrepareOmrImage(RasterImage omrImage)
-      {
-         var colorResolution =
-            new ColorResolutionCommand
-            {
-               BitsPerPixel = 1,
-               DitheringMethod = Leadtools.RasterDitheringMethod.None,
-               PaletteFlags = Leadtools.ImageProcessing.ColorResolutionCommandPaletteFlags.Fixed
-            };
-
-         colorResolution.Run(omrImage);
-         LineRemoveCommand(LineRemoveCommandType.Horizontal, omrImage);
-         LineRemoveCommand(LineRemoveCommandType.Vertical, omrImage);
-         return omrImage;
-      }
-
       public void CleanupImage(RasterImage imageToClean)
       {
          imageToClean.Page = 1;
@@ -546,7 +646,7 @@ namespace ElevationCertificateSlicer
          form.Attributes = CreateForm(method);
          var image = form.GetImage().CloneAll();
          //int saveCurrentPageIndex = image.Page;
-         
+
          for (int i = 0; i < image.PageCount; i++)
          {
             image.Page = i + 1;//page index is a 1-based starts from 1 not zero

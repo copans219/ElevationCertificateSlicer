@@ -45,6 +45,8 @@ namespace ElevationCertificateSlicer
       public string Text;
       public double Confidence;
       public string GoogleText;
+      public string GoogleConfirms;
+      [JsonIgnore]
       public double GoogleConfidence;
       public bool IsFilled;
       public string Bounds;

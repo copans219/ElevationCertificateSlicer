@@ -491,7 +491,7 @@ namespace ElevationCertificateSlicer
                var image = Google.Cloud.Vision.V1.Image.FromFile(file);
 
                var response = client.DetectDocumentText(image);
-               var serializer = new JsonSerializer {NullValueHandling = NullValueHandling.Ignore};
+               var serializer = new JsonSerializer { NullValueHandling = NullValueHandling.Ignore };
 
                using (StreamWriter sw = new StreamWriter(responseFile))
                using (JsonWriter writer = new JsonTextWriter(sw))
@@ -501,96 +501,100 @@ namespace ElevationCertificateSlicer
                }
             }
 
-            
+
             var json2 = File.ReadAllText(responseFile);
             var response2 = JsonConvert.DeserializeObject<TextAnnotation>(json2);
-            int index = 0;
-            float confidence = 1.01f;
-            var pageRange = Enumerable.Range(0, response2.Pages.Count);
-
-            foreach (var pnum in pageRange)
+            if (response2?.Pages != null)
             {
-               var page = response2.Pages[pnum];
-               var blockRange = Enumerable.Range(0, page.Blocks.Count);
-               foreach (var bnum in blockRange)
+               int index = 0;
+               float confidence = 1.01f;
+
+               var pageRange = Enumerable.Range(0, response2.Pages.Count);
+
+               foreach (var pnum in pageRange)
                {
-                  var block = page.Blocks[bnum];
-                  logger.Info($"block {bnum} {block.BoundingBox} paras={block.Paragraphs.Count}");
-                  var paraRange = Enumerable.Range(0, block.Paragraphs.Count);
-                  foreach (var paraNum in paraRange)
+                  var page = response2.Pages[pnum];
+                  var blockRange = Enumerable.Range(0, page.Blocks.Count);
+                  foreach (var bnum in blockRange)
                   {
-                     var paragraph = block.Paragraphs[paraNum];
-                     logger.Info($"{paragraph.BoundingBox} {paragraph.CalculateSize()} {paragraph.Words.Count}");
-                     var sb = new StringBuilder();
-                     Rectangle rect = Rectangle.Empty;
-                     var line = new StringBuilder();
-
-                     foreach (var word in paragraph.Words)
+                     var block = page.Blocks[bnum];
+                     logger.Info($"block {bnum} {block.BoundingBox} paras={block.Paragraphs.Count}");
+                     var paraRange = Enumerable.Range(0, block.Paragraphs.Count);
+                     foreach (var paraNum in paraRange)
                      {
-                        if (word.Confidence < confidence)
-                           confidence = word.Confidence;
-                        foreach (var symbol in word.Symbols)
-                        {
-                           line.Append(symbol.Text);
-                           if (rect == Rectangle.Empty)
-                           {
-                              rect = RectFromVertices.Convert(symbol.BoundingBox);
-                           }
-                           else rect = RectFromVertices.Expand(rect, symbol.BoundingBox);
+                        var paragraph = block.Paragraphs[paraNum];
+                        logger.Info($"{paragraph.BoundingBox} {paragraph.CalculateSize()} {paragraph.Words.Count}");
+                        var sb = new StringBuilder();
+                        Rectangle rect = Rectangle.Empty;
+                        var line = new StringBuilder();
 
-                           try
+                        foreach (var word in paragraph.Words)
+                        {
+                           if (word.Confidence < confidence)
+                              confidence = word.Confidence;
+                           foreach (var symbol in word.Symbols)
                            {
-                              if (symbol.Property?.DetectedBreak != null)
+                              line.Append(symbol.Text);
+                              if (rect == Rectangle.Empty)
                               {
-                                 switch (symbol.Property.DetectedBreak.Type)
+                                 rect = RectFromVertices.Convert(symbol.BoundingBox);
+                              }
+                              else rect = RectFromVertices.Expand(rect, symbol.BoundingBox);
+
+                              try
+                              {
+                                 if (symbol.Property?.DetectedBreak != null)
                                  {
-                                    case BreakType.Space:
-                                       line.Append(" ");
-                                       break;
-                                    case BreakType.EolSureSpace:
-                                    case BreakType.LineBreak:
-                                       index = AddTextBox(index, ref confidence, line, textBoxes, ref rect);
-                                       break;
-                                    default:
-                                       line.Append(" ");
-                                       break;
+                                    switch (symbol.Property.DetectedBreak.Type)
+                                    {
+                                       case BreakType.Space:
+                                          line.Append(" ");
+                                          break;
+                                       case BreakType.EolSureSpace:
+                                       case BreakType.LineBreak:
+                                          index = AddTextBox(index, ref confidence, line, textBoxes, ref rect);
+                                          break;
+                                       default:
+                                          line.Append(" ");
+                                          break;
+                                    }
                                  }
                               }
-                           }
-                           catch (Exception ex)
-                           {
-                              logger.Error(ex, $"{index} of {file} {paragraph.ToString()}");
+                              catch (Exception ex)
+                              {
+                                 logger.Error(ex, $"{index} of {file} {paragraph.ToString()}");
+                              }
                            }
                         }
-                     }
-                     if (line.Length > 0)
-                        index = AddTextBox(index, ref confidence, line, textBoxes, ref rect);
+                        if (line.Length > 0)
+                           index = AddTextBox(index, ref confidence, line, textBoxes, ref rect);
 
-                     //logger.Info(b.ToString());
+                        //logger.Info(b.ToString());
+                     }
                   }
                }
+               /*
+               boxesBySize = new SortedList<long, Box>(new DuplicateKeyComparer<long>());
+               var json = File.ReadAllText(boxFile);
+               var boxes = JsonConvert.DeserializeObject<List<Box>>(json);
+               foreach (var b in boxes)
+               {
+                  num++;
+                  b.Index = num;
+                  logger.Info($"{b}");
+
+                  boxesBySize.Add(b.Size, b);
+               }
+
+               logger.Info("-----------------------------------------------------");
+               foreach (var b in boxes)
+               {
+                  b.FindParents(boxesBySize);
+                  logger.Info(
+                     $"{b} cs:{b.Annotation.CalculateSize()} Parent:{b.Parent?.Index}");
+               }
+               */
             }
-            /*
-            boxesBySize = new SortedList<long, Box>(new DuplicateKeyComparer<long>());
-            var json = File.ReadAllText(boxFile);
-            var boxes = JsonConvert.DeserializeObject<List<Box>>(json);
-            foreach (var b in boxes)
-            {
-               num++;
-               b.Index = num;
-               logger.Info($"{b}");
-   
-               boxesBySize.Add(b.Size, b);
-            }
-   
-            logger.Info("-----------------------------------------------------");
-            foreach (var b in boxes)
-            {
-               b.FindParents(boxesBySize);
-               logger.Info(
-                  $"{b} cs:{b.Annotation.CalculateSize()} Parent:{b.Parent?.Index}");
-            }
-            */
          }
          catch (Exception ex)
          {
@@ -612,6 +616,91 @@ namespace ElevationCertificateSlicer
          line.Clear();
          return index;
       }
-   }
+      public List<Box> GoogleDetectText(FileInfo fi)
+      {
+         // Instantiates a client
+         var client = ImageAnnotatorClient.Create();
+         var file = fi.FullName;
+         var detectTextResponse = file + ".google.DetectText.response.json";
+         var boxFile = file + ".DetectText.interpreted.json";
+         var stem = Path.GetFileNameWithoutExtension(file);
 
+         // Load the image file into memory
+         //  var file = @"F:\Dropbox\OCR\Single\data\13864584_3_ocr~20181130_page3pdf.png";
+         var allBoxes = new List<Box>();
+         var boxesBySize = new SortedList<long, Box>(new DuplicateKeyComparer<long>());
+         int num = 0;
+         if (!File.Exists(detectTextResponse) || true)
+         {
+            var image = Google.Cloud.Vision.V1.Image.FromFile(file);
+
+
+            var serializer = new JsonSerializer { NullValueHandling = NullValueHandling.Ignore };
+
+            var response = client.DetectText(image);
+            using (StreamWriter sw = new StreamWriter(detectTextResponse))
+            using (JsonWriter writer = new JsonTextWriter(sw))
+            {
+               writer.Formatting = Formatting.Indented;
+               serializer.Serialize(writer, response);
+               // {"ExpiryDate":new Date(1230375600000),"Price":0}
+            }
+
+            foreach (var annotation in response)
+            {
+               num++;
+               if (annotation.Description != null)
+               {
+                  if (annotation.BoundingPoly == null)
+                  {
+                     logger.Info($"{num}. {annotation.ToString()}");
+                  }
+                  else if (annotation.BoundingPoly.Vertices.Count == 4)
+                  {
+                     var b = new Box(annotation, allBoxes.Count);
+                     allBoxes.Add(b);
+                     logger.Info(
+                        $"{num}. {b} cs:{annotation.CalculateSize()} Mid:{annotation.Mid} Parent:{b.Parent?.Index}");
+                  }
+                  else
+                     logger.Info(
+                        $"{num}.Vertices: {annotation.BoundingPoly.Vertices.Count} cs:{annotation.CalculateSize()} {annotation.Description}");
+               }
+               else
+               {
+                  logger.Info($"{num}. {annotation.ToString()}");
+               }
+            }
+
+            using (StreamWriter sw = new StreamWriter(boxFile))
+            using (JsonWriter writer = new JsonTextWriter(sw))
+            {
+               writer.Formatting = Formatting.Indented;
+               serializer.Serialize(writer, allBoxes);
+               // {"ExpiryDate":new Date(1230375600000),"Price":0}
+            }
+            var childBoxes = allBoxes.Select(x => x.Children.Count == 0).ToArray();
+            logger.Info($"end boxes {childBoxes.Length}");
+         }
+         boxesBySize = new SortedList<long, Box>(new DuplicateKeyComparer<long>());
+         var json = File.ReadAllText(boxFile);
+         var boxes = JsonConvert.DeserializeObject<List<Box>>(json);
+         foreach (var b in boxes)
+         {
+            num++;
+            b.Index = num;
+            logger.Info($"{b}");
+
+            boxesBySize.Add(b.Size, b);
+         }
+         logger.Info("-----------------------------------------------------");
+         foreach (var b in boxes)
+         {
+            b.FindParents(boxesBySize);
+            logger.Info(
+               $"{b} cs:{b.Annotation.CalculateSize()} Parent:{b.Parent?.Index}");
+         }
+         return boxes;
+      }
+   }
 }

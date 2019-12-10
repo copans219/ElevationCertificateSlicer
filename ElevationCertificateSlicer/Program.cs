@@ -83,6 +83,8 @@ namespace ElevationCertificateSlicer
       private const string keyName2 = "*** key name for second object created ***";
       private const string filePath = @"*** file path ***";
 
+      public static object Sleep { get; private set; }
+
       static async Task WriteS3()
       {
          try
@@ -194,6 +196,55 @@ namespace ElevationCertificateSlicer
          }
          return retList;
       }
+
+      public static Dictionary<int, int> GetAllProcessParentPids()
+      {
+         var childPidToParentPid = new Dictionary<int, int>();
+
+         var processCounters = new SortedDictionary<string, PerformanceCounter[]>();
+         var category = new PerformanceCounterCategory("Process");
+
+         // As the base system always has more than one process running, 
+         // don't special case a single instance return.
+         var instanceNames = category.GetInstanceNames();
+         foreach (string t in instanceNames)
+         {
+            try
+            {
+               processCounters[t] = category.GetCounters(t);
+            }
+            catch (InvalidOperationException)
+            {
+               // Transient processes may no longer exist between 
+               // GetInstanceNames and when the counters are queried.
+            }
+         }
+
+         foreach (var kvp in processCounters)
+         {
+            int childPid = -1;
+            int parentPid = -1;
+
+            foreach (var counter in kvp.Value)
+            {
+               if ("ID Process".CompareTo(counter.CounterName) == 0)
+               {
+                  childPid = (int)(counter.NextValue());
+               }
+               else if ("Creating Process ID".CompareTo(counter.CounterName) == 0)
+               {
+                  parentPid = (int)(counter.NextValue());
+               }
+            }
+
+            if (childPid != -1 && parentPid != -1)
+            {
+               childPidToParentPid[childPid] = parentPid;
+            }
+         }
+
+         return childPidToParentPid;
+      }
       // <param name="useS3">use todo for source, and then path is scratch</param>
 
       // <summary>
@@ -203,9 +254,10 @@ namespace ElevationCertificateSlicer
       // <param name="timeout">Time a single page can run</param>
       // <param name="wildcard">Windows file wildcard</param>
       // <param name="todo">number of files todo for S3 (implies useS3)</param>
-      static void Main( string path = CertificateDirString, int timeout = 15, string wildcard = "*.pdf", int todo = 0)
+      // <param name="process">process (thread) 1-n</param>
+      // <param name="pid">process id of calling ps1</param>
+      static void Main(string path = CertificateDirString, int timeout = 15, string wildcard = "*.pdf", int todo = 0, int process = 1, int pid = 0)
       {
-         logger.Info($"path={path}, wildcard={wildcard}, todo={todo}");
          var useS3 = todo > 0;
          //WriteS3().Wait();
 
@@ -242,9 +294,28 @@ namespace ElevationCertificateSlicer
          var filesToDo = new List<string>();
          if (useS3)
          {
-            
-            filesToDo = GetDirS3("to-do/", path, new Regex(@".*/" + wildcard.Replace("*",".*")), todo);
-            filesToDo.Sort();
+            var targetOrg = (FileTarget)LogManager.Configuration.FindTargetByName("logfile");
+            var targetBase = Path.GetFileNameWithoutExtension(targetOrg.FileName.ToString());
+
+            var logDir = Path.Combine(CertificateDirString, "log");
+
+            var newName = Path.Combine(logDir, $"{targetBase}_{process}_{pid}.log");
+            var logEventInfo = new LogEventInfo { TimeStamp = DateTime.Now };
+            targetOrg.FileName = newName;
+            LogManager.ReconfigExistingLoggers();
+            string fileName = targetOrg.FileName.Render(logEventInfo);
+            logger.Info($"path={path}, wildcard={wildcard}, todo={todo}, process={process}, pid={pid}\nlog={fileName}");
+            for (int i = 0; i < 600; i++)
+            {
+               filesToDo = GetDirS3("to-do/", path, new Regex(@".*/" + wildcard.Replace("*", ".*")), todo);
+               filesToDo.Sort();
+               logger.Info($"files to do= {filesToDo.Count}");
+               if (filesToDo.Count == 0)
+               {
+                  logger.Info($"sleeping for 3 seconds {i}");
+                  System.Threading.Thread.Sleep(3000);
+               }
+            }
          }
          else
          {
@@ -274,7 +345,7 @@ namespace ElevationCertificateSlicer
                }
             }
          }
-         var targetOriginal = (FileTarget)LogManager.Configuration.FindTargetByName("logfile");
+         var targetOriginal = (FileTarget)LogManager.Configuration.FindTargetByName("logfile2");
          var targetFileOrig = targetOriginal.FileName;
 
          if (filesToDo.Count > 0)
@@ -297,11 +368,11 @@ namespace ElevationCertificateSlicer
                   PdfFileName = fi.Name,
                   OriginalDirectoryName = dirTiff,
                };
-               var target = (FileTarget)LogManager.Configuration.FindTargetByName("logfile");
+               //var target = (FileTarget)LogManager.Configuration.FindTargetByName("logfile2");
                var logName = "logFile.txt";
-               target.FileName = Path.Combine(dirTiff, logName);
+               targetOriginal.FileName = Path.Combine(dirTiff, logName);
                formResults.S3FilesToCopy.Add(logName);
-               LogManager.ReconfigExistingLoggers(); 
+               LogManager.ReconfigExistingLoggers();
                try
                {
                   logger.Info(
@@ -344,7 +415,8 @@ namespace ElevationCertificateSlicer
                LogManager.ReconfigExistingLoggers();
                if (useS3)
                {
-                  try {
+                  try
+                  {
                      var targetFolderUpper = errors > 0 ? "error/" : "completed/";
                      var targetFolder = targetFolderUpper + stem + "/";
                      AmazonS3Config cfg = new AmazonS3Config
@@ -357,7 +429,7 @@ namespace ElevationCertificateSlicer
                      {
 
                         S3DirectoryInfo directoryToDelete = new S3DirectoryInfo(s3Client, bucketName, targetFolder);
-                        if(directoryToDelete.Exists)
+                        if (directoryToDelete.Exists)
                            directoryToDelete.Delete(true); // true will delete recursively in folder inside
                         foreach (var file in formResults.S3FilesToCopy)
                         {
@@ -380,7 +452,7 @@ namespace ElevationCertificateSlicer
 
                      }
                   }
-                  catch(Exception ex)
+                  catch (Exception ex)
                   {
                      logger.Error(ex, "Error trying to copy to S3");
                   }
