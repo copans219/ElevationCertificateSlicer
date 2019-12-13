@@ -245,20 +245,27 @@ namespace ElevationCertificateSlicer
 
          return childPidToParentPid;
       }
-      // <param name="useS3">use todo for source, and then path is scratch</param>
+      private static bool keepRunning = true;
 
-      // <summary>
-      // LEADOcr
-      // </summary>
-      // <param name="path">Either a single PDF or a directory</param>
-      // <param name="timeout">Time a single page can run</param>
-      // <param name="wildcard">Windows file wildcard</param>
-      // <param name="todo">number of files todo for S3 (implies useS3)</param>
-      // <param name="process">process (thread) 1-n</param>
-      // <param name="pid">process id of calling ps1</param>
+         // <param name="useS3">use todo for source, and then path is scratch</param>
+
+         // <summary>
+         // LEADOcr
+         // </summary>
+         // <param name="path">Either a single PDF or a directory</param>
+         // <param name="timeout">Time a single page can run</param>
+         // <param name="wildcard">Windows file wildcard</param>
+         // <param name="todo">number of files todo for S3 (implies useS3)</param>
+         // <param name="process">process (thread) 1-n</param>
+         // <param name="pid">process id of calling ps1</param>
       static void Main(string path = CertificateDirString, int timeout = 15, string wildcard = "*.pdf", int todo = 0, int process = 1, int pid = 0)
       {
-         var useS3 = todo > 0;
+            Console.CancelKeyPress += delegate (object sender, ConsoleCancelEventArgs e) {
+               e.Cancel = true;
+               Program.keepRunning = false;
+            };
+
+            var useS3 = todo > 0;
          //WriteS3().Wait();
 
          int hadForms = 0;
@@ -268,7 +275,9 @@ namespace ElevationCertificateSlicer
          var stopWatch = new Stopwatch();
          var stopWatchBig = new Stopwatch();
          stopWatch.Start();
+         if (!keepRunning) return;
          stopWatchBig.Start();
+         if (!keepRunning) return;
          try
          {
             string licString =
@@ -283,7 +292,7 @@ namespace ElevationCertificateSlicer
          {
             logger.Error(ex.Message);
          }
-
+         if (!keepRunning) return;
          if (RasterSupport.KernelExpired)
          {
             throw new Exception("Invalid license");
@@ -305,6 +314,7 @@ namespace ElevationCertificateSlicer
             LogManager.ReconfigExistingLoggers();
             string fileName = targetOrg.FileName.Render(logEventInfo);
             logger.Info($"path={path}, wildcard={wildcard}, todo={todo}, process={process}, pid={pid}\nlog={fileName}");
+            if (!keepRunning) return;
             for (int i = 0; i < 600; i++)
             {
                filesToDo = GetDirS3("to-do/", path, new Regex(@".*/" + wildcard.Replace("*", ".*")), todo);
@@ -313,8 +323,11 @@ namespace ElevationCertificateSlicer
                if (filesToDo.Count == 0)
                {
                   logger.Info($"sleeping for 3 seconds {i}");
+                  if (!keepRunning) return;
                   System.Threading.Thread.Sleep(3000);
+                  if (!keepRunning) return;
                }
+               else break;
             }
          }
          else
@@ -462,6 +475,12 @@ namespace ElevationCertificateSlicer
          }
          logger.Info(
             $"Completed f/e/n:{hadForms}/{hadErrors}/{noForms} in {stopWatchBig.Elapsed}");
+      }
+
+
+      protected static void myHandler(object sender, ConsoleCancelEventArgs args)
+      {
+         args.Cancel = true;
       }
       public static void TestOcr()
       {
