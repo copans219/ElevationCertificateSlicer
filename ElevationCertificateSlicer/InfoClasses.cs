@@ -653,22 +653,22 @@ namespace ElevationCertificateSlicer
                {
                   if (annotation.BoundingPoly == null)
                   {
-                     logger.Info($"{num}. {annotation.ToString()}");
+                     logger.Debug($"{num}. {annotation.ToString()}");
                   }
                   else if (annotation.BoundingPoly.Vertices.Count == 4)
                   {
                      var b = new Box(annotation, allBoxes.Count);
                      allBoxes.Add(b);
-                     logger.Info(
+                     logger.Debug(
                         $"{num}. {b} cs:{annotation.CalculateSize()} Mid:{annotation.Mid} Parent:{b.Parent?.Index}");
                   }
                   else
-                     logger.Info(
+                     logger.Debug(
                         $"{num}.Vertices: {annotation.BoundingPoly.Vertices.Count} cs:{annotation.CalculateSize()} {annotation.Description}");
                }
                else
                {
-                  logger.Info($"{num}. {annotation.ToString()}");
+                  logger.Debug($"{num}. {annotation.ToString()}");
                }
             }
 

@@ -116,297 +116,317 @@ namespace ElevationCertificateSlicer
             formResults.PagesInPdf = fileInfos.Count;
             foreach (var ofi in fileInfos)
             {
-
-               FilledForm newForm = new FilledForm();
-               retForms.Add(newForm);
-               newForm.ImageInfoMaster.InitialImage = ofi;
-               newForm.Name = Path.GetFileNameWithoutExtension(ofi.ImageFileInfo.Name);
-               if (ofi.Image == null)
+               try
                {
-                  ofi.Image = LoadImageFile(ofi.ImageFileInfo.FullName, 1, -1);
-               }
-
-               //CleanupImage(ofi.Image);
-               var par = new FormThreadCallParams()
-               {
-                  ImageInfo = ofi,
-                  StopWatch = stopWatch,
-                  Form = newForm
-               };
-               if (PageTimeoutInSeconds < 50)
-               {
-                  Thread t = new Thread(this.PrepareNewFormThreader);
-                  t.Start(par);
-                  if (!t.Join(TimeSpan.FromSeconds(PageTimeoutInSeconds)))
-                  {
-                     t.Abort();
-                     formResults.TimedOutPages.Add(newForm.Name);
-                     formResults.BestFormConfidence.Add(-1);
-                     if (formResults.TimedOutPages.Count > 2 && formResults.PagesMappedToForm == 0)
-                     {
-                        formResults.Status =
-                           $"Form abandoned for timeout after {formResults.BestFormConfidence.Count} pages";
-                        logger.Error(formResults.Status);
-                        return retForms;
-                     }
-
-                     continue;
-                  }
-               }
-               else
-               {
-                  PrepareNewFormThreader(par);
-               }
-
-               Debug.Assert(par.Attributes != null);
-               var filledFormAttributes = par.Attributes;
-               //List<FormRecognitionResult> results = new List<FormRecognitionResult>();
-               MasterForm currentMasterBlockForm = null;
-               int bestConfidence = -1;
-               int currentConfidence = 85;
-               foreach (var master in BlockMasterForms)
-               {
-                  if (usedMasters.Contains(master))
-                     continue;
-                  var result = RecognitionEngine.CompareForm(master.Attributes, filledFormAttributes, null, null);
-                  //logger.Debug($"Check {master} for {newForm} {stopWatch.ElapsedMilliseconds} {result.Confidence}");
-                  if (result.Confidence > currentConfidence)
-                  {
-                     currentMasterBlockForm = master;
-                     bestConfidence = currentConfidence = result.Confidence;
-                  }
-                  else if (result.Confidence > bestConfidence)
-                     bestConfidence = result.Confidence;
-               }
-
-               formResults.BestFormConfidence.Add(bestConfidence);
-               if (currentMasterBlockForm != null)
-               {
-                  formResults.MasterFormPages.Add(currentMasterBlockForm.Properties.Name);
-                  formResults.PagesMappedToForm++;
-                  logger.Info($"FilledForm matched {newForm.Name} {newForm.Status} {stopWatch.ElapsedMilliseconds} ");
+                  FilledForm newForm = new FilledForm();
+                  retForms.Add(newForm);
                   newForm.ImageInfoMaster.InitialImage = ofi;
-                  var centeredImage = ofi.Image.CloneAll();
-
-                  CleanupImage(centeredImage);
-                  newForm.ImageInfoMaster.CenteredImage = new ImageInfo() { Image = centeredImage };
-                  var omrImage = centeredImage.CloneAll();
-                  PrepareOmrImage(omrImage);
-                  newForm.ImageInfoMaster.OmrImage = new ImageInfo() { Image = omrImage };
-                  newForm.Status = "Matched";
-                  newForm.Master = currentMasterBlockForm;
-                  var alignment =
-                     RecognitionEngine.GetFormAlignment(newForm.Master.Attributes, newForm.Attributes, null);
-                  var fields = currentMasterBlockForm.ProcessingPages[0];
-                  var scaler = currentMasterBlockForm.Resolution;
-                  var fieldsOnlyImage = RasterImage.Create(centeredImage.Width, centeredImage.Height,
-                     centeredImage.BitsPerPixel, 300, RasterColor.White);
-                  //fieldsOnlyImage  = new RasterImage(RasterMemoryFlags.Conventional, centeredImage.Width, centeredImage.Height, centeredInage.BitsPerPixel, RasterByteOrder.Rgb, RasterViewPerspective.TopLeft, null, null, 0);
-
-                  var subDirField = Path.Combine(outDir, "fields");
-                  var fileNameFieldOnly = Path.Combine(subDirField, newForm.Name + "_fields.png");
-                  var googleResultsFile = Path.Combine(subDirField, newForm.Name + "_google.json");
-                  var combined = false;
-                  foreach (var field in fields)
+                  newForm.Name = Path.GetFileNameWithoutExtension(ofi.ImageFileInfo.Name);
+                  if (ofi.Image == null)
                   {
-                     var isBlock = field.Name.Contains("block");
-                     var rect200 = alignment[0].AlignRectangle(field.Bounds);
-                     scaler = 300;
-                     int fudge = isBlock ? 30 : 1;
-                     var rect300 = new LeadRect(rect200.Left * 300 / scaler - fudge, rect200.Top * 300 / scaler - fudge,
-                        rect200.Width * 300 / scaler + fudge,
-                        rect200.Height * 300 / scaler + fudge);
-                     try
+                     ofi.Image = LoadImageFile(ofi.ImageFileInfo.FullName, 1, -1);
+                  }
+
+                  //CleanupImage(ofi.Image);
+                  var par = new FormThreadCallParams()
+                  {
+                     ImageInfo = ofi,
+                     StopWatch = stopWatch,
+                     Form = newForm
+                  };
+                  if (PageTimeoutInSeconds < 50)
+                  {
+                     Thread t = new Thread(this.PrepareNewFormThreader);
+                     t.Start(par);
+                     if (!t.Join(TimeSpan.FromSeconds(PageTimeoutInSeconds)))
                      {
-                        var imageInfoToUse = newForm.ImageInfoMaster.CenteredImage;
-                        var zoneType = OcrZoneType.Text;
-                        if (field.GetType() == typeof(OmrFormField))
+                        t.Abort();
+                        formResults.TimedOutPages.Add(newForm.Name);
+                        formResults.BestFormConfidence.Add(-1);
+                        if (formResults.TimedOutPages.Count > 2 && formResults.PagesMappedToForm == 0)
                         {
-                           imageInfoToUse = newForm.ImageInfoMaster.OmrImage;
-                           zoneType = OcrZoneType.Omr;
+                           formResults.Status =
+                              $"Form abandoned for timeout after {formResults.BestFormConfidence.Count} pages";
+                           logger.Error(formResults.Status);
+                           return retForms;
                         }
-                        else if (field.GetType() == typeof(ImageFormField))
-                           zoneType = OcrZoneType.Graphic;
 
-                        var image = imageInfoToUse.Image.CloneAll();
-                        var subFolder = isBlock ? "blocks" : "fields";
-                        var subDir = Path.Combine(outDir, subFolder);
-                        var imageFileName = newForm.Name + "_" + field.Name + ".png";
-                        var fileName = Path.Combine(subDir, imageFileName);
-                        var imageField = new ImageField
-                        {
-                           Field = field,
-                           FieldResult =
-                           {
-                              FieldName = field.Name,
-                              IsBlock = isBlock,
-                              ImageFile = fileName,
-                              Bounds = rect300.ToString(),
-                              FieldType = zoneType.ToString(),
+                        continue;
+                     }
+                  }
+                  else
+                  {
+                     PrepareNewFormThreader(par);
+                  }
 
-                              Error = "None"
-                           }
-                        };
-                        imageField.Rectangle = new Rectangle(rect300.X, rect300.Y, rect300.Width, rect300.Height);
+                  Debug.Assert(par.Attributes != null);
+                  var filledFormAttributes = par.Attributes;
+                  //List<FormRecognitionResult> results = new List<FormRecognitionResult>();
+                  MasterForm currentMasterBlockForm = null;
+                  int bestConfidence = -1;
+                  int currentConfidence = 85;
+                  foreach (var master in BlockMasterForms)
+                  {
+                     if (usedMasters.Contains(master))
+                        continue;
+                     var result = RecognitionEngine.CompareForm(master.Attributes, filledFormAttributes, null, null);
+                     //logger.Debug($"Check {master} for {newForm} {stopWatch.ElapsedMilliseconds} {result.Confidence}");
+                     if (result.Confidence > currentConfidence)
+                     {
+                        currentMasterBlockForm = master;
+                        bestConfidence = currentConfidence = result.Confidence;
+                     }
+                     else if (result.Confidence > bestConfidence)
+                        bestConfidence = result.Confidence;
+                  }
 
+                  formResults.BestFormConfidence.Add(bestConfidence);
+                  if (currentMasterBlockForm != null)
+                  {
+                     formResults.MasterFormPages.Add(currentMasterBlockForm.Properties.Name);
+                     formResults.PagesMappedToForm++;
+                     logger.Info(
+                        $"FilledForm matched {newForm.Name} {newForm.Status} {stopWatch.ElapsedMilliseconds} ");
+                     newForm.ImageInfoMaster.InitialImage = ofi;
+                     var centeredImage = ofi.Image.CloneAll();
+
+                     CleanupImage(centeredImage);
+                     newForm.ImageInfoMaster.CenteredImage = new ImageInfo() {Image = centeredImage};
+                     var omrImage = centeredImage.CloneAll();
+                     PrepareOmrImage(omrImage);
+                     newForm.ImageInfoMaster.OmrImage = new ImageInfo() {Image = omrImage};
+                     newForm.Status = "Matched";
+                     newForm.Master = currentMasterBlockForm;
+                     var alignment =
+                        RecognitionEngine.GetFormAlignment(newForm.Master.Attributes, newForm.Attributes, null);
+                     var fields = currentMasterBlockForm.ProcessingPages[0];
+                     var scaler = currentMasterBlockForm.Resolution;
+                     var fieldsOnlyImage = RasterImage.Create(centeredImage.Width, centeredImage.Height,
+                        centeredImage.BitsPerPixel, 300, RasterColor.White);
+                     //fieldsOnlyImage  = new RasterImage(RasterMemoryFlags.Conventional, centeredImage.Width, centeredImage.Height, centeredInage.BitsPerPixel, RasterByteOrder.Rgb, RasterViewPerspective.TopLeft, null, null, 0);
+
+                     var subDirField = Path.Combine(outDir, "fields");
+                     var fileNameFieldOnly = Path.Combine(subDirField, newForm.Name + "_fields.png");
+                     var googleResultsFile = Path.Combine(subDirField, newForm.Name + "_google.json");
+                     var combined = false;
+                     foreach (var field in fields)
+                     {
+                        var isBlock = field.Name.Contains("block");
+                        var rect200 = alignment[0].AlignRectangle(field.Bounds);
+                        scaler = 300;
+                        int fudge = isBlock ? 30 : 1;
+                        var rect300 = new LeadRect(rect200.Left * 300 / scaler - fudge,
+                           rect200.Top * 300 / scaler - fudge,
+                           rect200.Width * 300 / scaler + fudge,
+                           rect200.Height * 300 / scaler + fudge);
                         try
                         {
-                           EnsurePathExists(subDir);
-                           CropCommand command = new CropCommand
+                           var imageInfoToUse = newForm.ImageInfoMaster.CenteredImage;
+                           var zoneType = OcrZoneType.Text;
+                           if (field.GetType() == typeof(OmrFormField))
                            {
-                              Rectangle = rect300
+                              imageInfoToUse = newForm.ImageInfoMaster.OmrImage;
+                              zoneType = OcrZoneType.Omr;
+                           }
+                           else if (field.GetType() == typeof(ImageFormField))
+                              zoneType = OcrZoneType.Graphic;
+
+                           var image = imageInfoToUse.Image.CloneAll();
+                           var subFolder = isBlock ? "blocks" : "fields";
+                           var subDir = Path.Combine(outDir, subFolder);
+                           var imageFileName = newForm.Name + "_" + field.Name + ".png";
+                           var fileName = Path.Combine(subDir, imageFileName);
+                           var imageField = new ImageField
+                           {
+                              Field = field,
+                              FieldResult =
+                              {
+                                 FieldName = field.Name,
+                                 IsBlock = isBlock,
+                                 ImageFile = fileName,
+                                 Bounds = rect300.ToString(),
+                                 FieldType = zoneType.ToString(),
+
+                                 Error = "None"
+                              }
                            };
-                           command.Run(image);
-                           RasterCodecs.Save(image, fileName, RasterImageFormat.Png, bitsPerPixel: 8);
-                           if (isBlock)
-                           {
-                              formResults.S3FilesToCopy.Add($"{subFolder}/{imageFileName}");
-                           }
-                           if (!isBlock && zoneType == OcrZoneType.Text && !combined)
-                           {
-                              try
-                              {
-                                 ;
-                                 var combiner = new CombineCommand();
-                                 //combiner.DestinationImage = fieldsOnlyImage;
-                                 combiner.SourceImage = image.Clone();
-                                 combiner.DestinationRectangle = rect300;
-                                 var regionBounds = image.GetRegionBounds(null);
-                                 combiner.SourcePoint = new LeadPoint(regionBounds.X, regionBounds.Y);
-                                 //combiner.Flags = CombineCommandFlags.OperationAdd | CombineCommandFlags.Destination0 | CombineCommandFlags.Source1 | CombineCommandFlags.Destination0 ;
+                           imageField.Rectangle = new Rectangle(rect300.X, rect300.Y, rect300.Width, rect300.Height);
 
-                                 combiner.Flags = CombineCommandFlags.OperationOr | CombineCommandFlags.Destination0; ; // |CombineFastCommandFlags.OperationAverage;
-                                 combiner.Run(fieldsOnlyImage);
-                                 //combined = true;
+                           try
+                           {
+                              EnsurePathExists(subDir);
+                              CropCommand command = new CropCommand
+                              {
+                                 Rectangle = rect300
+                              };
+                              command.Run(image);
+                              if (isBlock)
+                              {
+                                 RasterCodecs.Save(image, fileName, RasterImageFormat.Png, bitsPerPixel: 8);
+                                 formResults.S3FilesToCopy.Add($"{subFolder}/{imageFileName}");
                               }
-                              catch (Exception exCombine)
-                              {
-                                 logger.Error(exCombine, $"error combining field {field.Name} {rect300}");
-                              }
-                           }
 
-                           var imageInfo = new ImageInfo() { Image = image, ImageFileInfo = new FileInfo(fileName) };
-                           imageField.ImageInfo = imageInfo;
-
-                           if (!isBlock && zoneType != OcrZoneType.Graphic)
-                           {
-                              using (IOcrPage ocrPage = OcrEngine.CreatePage(image, OcrImageSharingMode.AutoDispose))
+                              if (!isBlock && zoneType == OcrZoneType.Text && !combined)
                               {
-                                 OcrZone ocrZone = new OcrZone
-                                 {
-                                    ZoneType = zoneType,
-                                    Bounds = new LeadRect(fudge, fudge, image.ImageSize.Width - fudge * 2,
-                                       image.ImageSize.Height - fudge * 2)
-                                 };
-                                 int steps = 0;
                                  try
                                  {
-                                    steps++;
-                                    ocrPage.Zones.Add(ocrZone);
-                                    steps++;
-                                    ocrPage.Recognize(null);
-                                    steps++;
-                                    if (zoneType == OcrZoneType.Omr)
-                                    {
-                                       GetOmrReading(ocrPage, field, imageField);
-                                    }
-                                    else if (zoneType == OcrZoneType.Text)
-                                    {
-                                       var resultsPage = GetPageConfidence(ocrPage);
-                                       steps++;
-                                       imageField.FieldResult.Confidence = resultsPage.Confidence;
-                                       char[] crlf = { '\r', '\n' };
-                                       steps++;
-                                       imageField.FieldResult.Text = ocrPage.GetText(0).TrimEnd(crlf);
-                                    }
-                                 }
-                                 catch (Exception exNochange)
-                                 {
-                                    bool fatalError = true;
-                                    foreach (var okError in new string[] { "The image has not changed", "Invalid width or height" })
-                                    {
+                                    ;
+                                    var combiner = new CombineCommand();
+                                    //combiner.DestinationImage = fieldsOnlyImage;
+                                    combiner.SourceImage = image.Clone();
+                                    combiner.DestinationRectangle = rect300;
+                                    var regionBounds = image.GetRegionBounds(null);
+                                    combiner.SourcePoint = new LeadPoint(regionBounds.X, regionBounds.Y);
+                                    //combiner.Flags = CombineCommandFlags.OperationAdd | CombineCommandFlags.Destination0 | CombineCommandFlags.Source1 | CombineCommandFlags.Destination0 ;
 
-                                       if (exNochange.Message.Contains(okError))
+                                    combiner.Flags = CombineCommandFlags.OperationOr | CombineCommandFlags.Destination0;
+                                    ; // |CombineFastCommandFlags.OperationAverage;
+                                    combiner.Run(fieldsOnlyImage);
+                                    //combined = true;
+                                 }
+                                 catch (Exception exCombine)
+                                 {
+                                    logger.Error(exCombine, $"error combining field {field.Name} {rect300}");
+                                 }
+                              }
+
+                              var imageInfo = new ImageInfo() {Image = image, ImageFileInfo = new FileInfo(fileName)};
+                              imageField.ImageInfo = imageInfo;
+
+                              if (!isBlock && zoneType != OcrZoneType.Graphic)
+                              {
+                                 using (IOcrPage ocrPage = OcrEngine.CreatePage(image, OcrImageSharingMode.AutoDispose))
+                                 {
+                                    OcrZone ocrZone = new OcrZone
+                                    {
+                                       ZoneType = zoneType,
+                                       Bounds = new LeadRect(fudge, fudge, image.ImageSize.Width - fudge * 2,
+                                          image.ImageSize.Height - fudge * 2)
+                                    };
+                                    int steps = 0;
+                                    try
+                                    {
+                                       steps++;
+                                       ocrPage.Zones.Add(ocrZone);
+                                       steps++;
+                                       ocrPage.Recognize(null);
+                                       steps++;
+                                       if (zoneType == OcrZoneType.Omr)
                                        {
-                                          logger.Error(exNochange, $"{okError} treated as blank {zoneType} {ocrZone.Bounds} for {field.Name}, steps {steps} [{fileName}]");
-                                          imageField.FieldResult.Text = "";
-                                          imageField.FieldResult.Confidence = 0;
-                                          if (zoneType == OcrZoneType.Omr)
-                                          {
-                                             imageField.FieldResult.IsFilled = false;
-                                          }
-                                          fatalError = false;
-                                          break;
+                                          GetOmrReading(ocrPage, field, imageField);
+                                       }
+                                       else if (zoneType == OcrZoneType.Text)
+                                       {
+                                          var resultsPage = GetPageConfidence(ocrPage);
+                                          steps++;
+                                          imageField.FieldResult.Confidence = resultsPage.Confidence;
+                                          char[] crlf = {'\r', '\n'};
+                                          steps++;
+                                          imageField.FieldResult.Text = ocrPage.GetText(0).TrimEnd(crlf);
                                        }
                                     }
-                                    if (fatalError)
+                                    catch (Exception exNochange)
                                     {
-                                       formResults.FieldsWithError++;
-                                       logger.Error(exNochange, $"Error where expected Image not changed .added ocrZone {ocrZone} for {field.Name}, steps {steps} {fileName}");
+                                       bool fatalError = true;
+                                       foreach (var okError in new string[]
+                                          {"The image has not changed", "Invalid width or height"})
+                                       {
+
+                                          if (exNochange.Message.Contains(okError))
+                                          {
+                                             logger.Error(exNochange,
+                                                $"{okError} treated as blank {zoneType} {ocrZone.Bounds} for {field.Name}, steps {steps} [{fileName}]");
+                                             imageField.FieldResult.Text = "";
+                                             imageField.FieldResult.Confidence = 0;
+                                             if (zoneType == OcrZoneType.Omr)
+                                             {
+                                                imageField.FieldResult.IsFilled = false;
+                                             }
+
+                                             fatalError = false;
+                                             break;
+                                          }
+                                       }
+
+                                       if (fatalError)
+                                       {
+                                          formResults.FieldsWithError++;
+                                          logger.Error(exNochange,
+                                             $"Error where expected Image not changed .added ocrZone {ocrZone} for {field.Name}, steps {steps} {fileName}");
+                                       }
                                     }
                                  }
                               }
+
+                              logger.Info(
+                                 $"field {field.Name} {rect300} [{imageField.FieldResult.Text}] confidence: {imageField.FieldResult.Confidence}");
+                           }
+                           catch (Exception exField)
+                           {
+                              logger.Error(exField, $"Error processing {field.Name}");
+                              formResults.FieldsWithError++;
+                              imageField.FieldResult.Error = exField.Message;
                            }
 
-                           logger.Info(
-                              $"field {field.Name} {rect300} [{imageField.FieldResult.Text}] confidence: {imageField.FieldResult.Confidence}");
+                           newForm.ImageFields.Add(imageField);
+                           formResults.OcrFields.Add(imageField.FieldResult);
+                           formResults.Status = "FormMatched";
                         }
-                        catch (Exception exField)
+                        catch (Exception ex)
                         {
-                           logger.Error(exField, $"Error processing {field.Name}");
-                           formResults.FieldsWithError++;
-                           imageField.FieldResult.Error = exField.Message;
+                           logger.Error(ex, $"Error on field {field.Name} {rect300}");
+                           newForm.Status = $"Error|Field {field.Name} {rect300}: [{ex.Message}]";
+                        }
+                     }
+
+                     RasterCodecs.Save(PrepareOmrImage(fieldsOnlyImage), fileNameFieldOnly, RasterImageFormat.Png,
+                        bitsPerPixel: 8);
+                     //Thread.Sleep(1000);
+                     //fileNameFieldOnly = @"C:\OCR\99014600682018_02_fields.png";
+                     try
+                     {
+                        var googleBoxes = GoogleDetectText(new FileInfo(fileNameFieldOnly));
+                        if (googleBoxes.Count > 0)
+                        {
+                           var json = JsonConvert.SerializeObject(googleBoxes, Formatting.Indented);
+                           File.WriteAllText(googleResultsFile, json);
+                           MergeGoogleOcrBox(newForm, googleBoxes);
                         }
 
-                        newForm.ImageFields.Add(imageField);
-                        formResults.OcrFields.Add(imageField.FieldResult);
-                        formResults.Status = "FormMatched";
+                        /*
+                        var googleResults = GoogleOcr(fileNameFieldOnly);
+                        if (googleResults.Count > 0)
+                        {
+                           var json = JsonConvert.SerializeObject(googleResults, Formatting.Indented);
+                           File.WriteAllText(googleResultsFile, json);
+   
+                           MergeGoogleOcr(newForm, googleResults);
+                        }
+                        */
                      }
                      catch (Exception ex)
                      {
-                        logger.Error(ex, $"Error on field {field.Name} {rect300}");
-                        newForm.Status = $"Error|Field {field.Name} {rect300}: [{ex.Message}]";
+                        logger.Warn(ex, $"Warning: could not do google check on {fileNameFieldOnly}");
                      }
-                  }
-                  RasterCodecs.Save(PrepareOmrImage(fieldsOnlyImage), fileNameFieldOnly, RasterImageFormat.Png, bitsPerPixel: 8);
-                  //Thread.Sleep(1000);
-                  //fileNameFieldOnly = @"C:\OCR\99014600682018_02_fields.png";
-                  try
-                  {
-                     var googleBoxes = GoogleDetectText(new FileInfo(fileNameFieldOnly));
-                     if (googleBoxes.Count > 0)
-                     {
-                        var json = JsonConvert.SerializeObject(googleBoxes, Formatting.Indented);
-                        File.WriteAllText(googleResultsFile, json);
-                        MergeGoogleOcrBox(newForm, googleBoxes);
-                     }
-                     /*
-                     var googleResults = GoogleOcr(fileNameFieldOnly);
-                     if (googleResults.Count > 0)
-                     {
-                        var json = JsonConvert.SerializeObject(googleResults, Formatting.Indented);
-                        File.WriteAllText(googleResultsFile, json);
 
-                        MergeGoogleOcr(newForm, googleResults);
-                     }
-                     */
+                     usedMasters.Add(currentMasterBlockForm);
                   }
-                  catch (Exception ex)
+                  else
                   {
-                     logger.Warn(ex, $"Warning: could not do google check on {fileNameFieldOnly}");
+                     newForm.Status = "Unmatched|No MasterForm match";
                   }
-                  usedMasters.Add(currentMasterBlockForm);
-               }
-               else
-               {
-                  newForm.Status = "Unmatched|No MasterForm match";
-               }
 
-               logger.Info($"FilledForm processed {newForm.Name} {newForm.Status} {stopWatch.ElapsedMilliseconds} ");
-               if (usedMasters.Count == BlockMasterForms.Count)
+                  logger.Info($"FilledForm processed {newForm.Name} {newForm.Status} {stopWatch.ElapsedMilliseconds} ");
+                  if (usedMasters.Count == BlockMasterForms.Count)
+                  {
+                     logger.Info("found all master forms");
+                     break;
+                  }
+
+               }
+               catch (Exception exFiLevel)
                {
-                  logger.Info("found all master forms");
-                  break;
+                  logger.Error(exFiLevel, $"error processing ${ofi.ImageFileInfo.Name}");
                }
             }
 

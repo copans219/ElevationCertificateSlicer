@@ -16,6 +16,8 @@ using Leadtools.ImageProcessing.Core;
 using Newtonsoft.Json;
 using System.Diagnostics;
 using System.Security.Permissions;
+using System.Text;
+using System.Threading;
 using Newtonsoft.Json.Linq;
 using NLog;
 using Amazon.S3;
@@ -124,7 +126,7 @@ namespace ElevationCertificateSlicer
          }
       }
 
-      static List<string> GetDirS3(string folder, string outDirectory, Regex wildcard, int numberToDo = 1)
+      static List<string> GetDirS3(string folder, string outDirectory, Regex wildcard, int numberToDo = 1, bool copyToWorking = true, HashSet<string> skipKeys = null)
       {
          logger.Info($"wild card {wildcard}");
          var retList = new List<string>();
@@ -151,30 +153,94 @@ namespace ElevationCertificateSlicer
                {
                   if (wildcard.IsMatch(obj.Key))
                   {
-                     var fi = new S3FileInfo(s3Client, bucketName, obj.Key);
-                     if (fi.Type == FileSystemType.File)
+                     if (skipKeys != null)
                      {
-                        var fileOrig = new S3FileName(obj.Key);
-                        var newFolder = "working/";
-                        var workingName = new S3FileName(newFolder + fileOrig.Name); // obj.Key.Replace(request.Prefix, newFolder);
-                        S3FileInfo source = new S3FileInfo(s3Client, bucketName, fileOrig.Key);
-                        //string bucketName2 = "destination butcket";
-                        S3FileInfo destination = new S3FileInfo(s3Client, bucketName, workingName.Key);
-                        logger.Info($"moving {fileOrig.Name} to {newFolder}");
-                        source.MoveTo(destination);
-                        var filePath = Path.Combine(outDirectory, workingName.Name);
-                        if (File.Exists(filePath))
+                        if (skipKeys.Contains(obj.Key))
+                           continue;
+                        skipKeys.Add(obj.Key); // we've seen this once, so skip for another time
+                     }
+
+                     var fi = new S3FileInfo(s3Client, bucketName, obj.Key);
+                     if (fi.Type == FileSystemType.File && fi.Exists)
+                     {
+                        if (!copyToWorking)
                         {
-                           File.Delete(filePath);
+                           retList.Add(obj.Key.Substring(6,obj.Key.Length-6));
                         }
-                        var transferRequest = new TransferUtilityDownloadRequest
+                        else
                         {
-                           BucketName = bucketName,
-                           FilePath = filePath,
-                           Key = workingName.Key
-                        };
-                        transferUtility.Download(transferRequest);
-                        retList.Add(filePath);
+                           var fileOrig = new S3FileName(obj.Key);
+                           var newFolder = "working/";
+                           var workingName =
+                              new S3FileName(newFolder + fileOrig.Name); // obj.Key.Replace(request.Prefix, newFolder);
+                           using (var mutex = new Mutex(false, obj.Key))
+                           {
+                              var mutexAcquired = false;
+                              try
+                              {
+                                 // acquire the mutex (or timeout after 50 milliseconds)
+                                 // will return false if it timed out
+                                 mutexAcquired = mutex.WaitOne(50);
+                              }
+                              catch (AbandonedMutexException)
+                              {
+                                 // abandoned mutexes are still acquired, we just need
+                                 // to handle the exception and treat it as acquisition
+                                 mutexAcquired = true;
+                              }
+
+                              // if it wasn't acquired, it timed out, so can handle that how ever we want
+                              if (!mutexAcquired)
+                              {
+                                 logger.Info($"Could not acquire a lock to ${obj.Key}");
+                                 continue;
+                              }
+
+                              // otherwise, we've acquired the mutex and should do what we need to do,
+                              // then ensure that we always release the mutex
+                              try
+                              {
+                                 fi = new S3FileInfo(s3Client, bucketName, obj.Key);
+                                 if (!fi.Exists)
+                                 {
+                                    logger.Warn($"{obj.Key} was moved by another process");
+                                    continue;
+                                 }
+
+                                 S3FileInfo source = new S3FileInfo(s3Client, bucketName, fileOrig.Key);
+                                 //string bucketName2 = "destination butcket";
+                                 S3FileInfo destination = new S3FileInfo(s3Client, bucketName, workingName.Key);
+                                 logger.Info($"moving {fileOrig.Name} to {newFolder}");
+                                 source.MoveTo(destination);
+                                 var filePath = Path.Combine(outDirectory, workingName.Name);
+                                 if (File.Exists(filePath))
+                                 {
+                                    logger.Info($"{filePath} already exists");
+                                    continue;
+                                 }
+
+                                 var transferRequest = new TransferUtilityDownloadRequest
+                                 {
+                                    BucketName = bucketName,
+                                    FilePath = filePath,
+                                    Key = workingName.Key
+                                 };
+                                 transferUtility.Download(transferRequest);
+                                 retList.Add(filePath);
+                                 fi = new S3FileInfo(s3Client, bucketName, obj.Key);
+                                 if (fi.Type == FileSystemType.File && fi.Exists)
+                                    logger.Warn($"{obj.Key} was moved but still found");
+                              }
+                              catch (Exception ex)
+                              {
+                                 logger.Error(ex, $"Error copying {obj.Key} to working");
+                              }
+                              finally
+                              {
+                                 mutex.ReleaseMutex();
+                              }
+                           }
+                        }
                         if (retList.Count >= numberToDo)
                         {
                            break;
@@ -197,54 +263,6 @@ namespace ElevationCertificateSlicer
          return retList;
       }
 
-      public static Dictionary<int, int> GetAllProcessParentPids()
-      {
-         var childPidToParentPid = new Dictionary<int, int>();
-
-         var processCounters = new SortedDictionary<string, PerformanceCounter[]>();
-         var category = new PerformanceCounterCategory("Process");
-
-         // As the base system always has more than one process running, 
-         // don't special case a single instance return.
-         var instanceNames = category.GetInstanceNames();
-         foreach (string t in instanceNames)
-         {
-            try
-            {
-               processCounters[t] = category.GetCounters(t);
-            }
-            catch (InvalidOperationException)
-            {
-               // Transient processes may no longer exist between 
-               // GetInstanceNames and when the counters are queried.
-            }
-         }
-
-         foreach (var kvp in processCounters)
-         {
-            int childPid = -1;
-            int parentPid = -1;
-
-            foreach (var counter in kvp.Value)
-            {
-               if ("ID Process".CompareTo(counter.CounterName) == 0)
-               {
-                  childPid = (int)(counter.NextValue());
-               }
-               else if ("Creating Process ID".CompareTo(counter.CounterName) == 0)
-               {
-                  parentPid = (int)(counter.NextValue());
-               }
-            }
-
-            if (childPid != -1 && parentPid != -1)
-            {
-               childPidToParentPid[childPid] = parentPid;
-            }
-         }
-
-         return childPidToParentPid;
-      }
       private static bool keepRunning = true;
 
          // <param name="useS3">use todo for source, and then path is scratch</param>
@@ -258,14 +276,15 @@ namespace ElevationCertificateSlicer
          // <param name="todo">number of files todo for S3 (implies useS3)</param>
          // <param name="process">process (thread) 1-n</param>
          // <param name="pid">process id of calling ps1</param>
-      static void Main(string path = CertificateDirString, int timeout = 15, string wildcard = "*.pdf", int todo = 0, int process = 1, int pid = 0)
+      static void Main(string path = CertificateDirString, int timeout = 15, string wildcard = "*", int todo = 0, int process = 1, int pid = 0)
       {
-            Console.CancelKeyPress += delegate (object sender, ConsoleCancelEventArgs e) {
-               e.Cancel = true;
-               Program.keepRunning = false;
-            };
-
-            var useS3 = todo > 0;
+         Console.CancelKeyPress += delegate (object sender, ConsoleCancelEventArgs e) {
+            e.Cancel = true;
+            Program.keepRunning = false;
+         };
+         if (!(wildcard.Contains(".pdf") || wildcard.Contains(".tif")))
+            wildcard = wildcard + ".(pdf|tif)";
+         var useS3 = todo > 0;
          //WriteS3().Wait();
 
          int hadForms = 0;
@@ -303,21 +322,41 @@ namespace ElevationCertificateSlicer
          var filesToDo = new List<string>();
          if (useS3)
          {
+#if COMPARE_OLD
+            var checkNewFiles = GetDirS3("to-do/", path, new Regex(@".*/" + wildcard.Replace("*", ".*")), 10000, copyToWorking: false);
+            var oldFiles = File.ReadAllLines(@"F:\ec_pdfs.txt").ToHashSet();
+            var sb = new StringBuilder();
+            int numNewFiles = 0;
+            int numOldFiles = 0;
+            foreach (var fil in checkNewFiles)
+            {
+               if (oldFiles.Contains(fil))
+                  numOldFiles++;
+               else numNewFiles++;
+               sb.Append($"{fil}|{oldFiles.Contains(fil)}|{numOldFiles}|{numNewFiles}\n");
+            }
+            logger.Info($"old vs new files\n{sb.ToString()}");
+#endif            
             var targetOrg = (FileTarget)LogManager.Configuration.FindTargetByName("logfile");
             var targetBase = Path.GetFileNameWithoutExtension(targetOrg.FileName.ToString());
 
-            var logDir = Path.Combine(CertificateDirString, "log");
+            var logDir = Path.Combine(path, "log");
 
             var newName = Path.Combine(logDir, $"{targetBase}_{process}_{pid}.log");
+
             var logEventInfo = new LogEventInfo { TimeStamp = DateTime.Now };
             targetOrg.FileName = newName;
             LogManager.ReconfigExistingLoggers();
             string fileName = targetOrg.FileName.Render(logEventInfo);
             logger.Info($"path={path}, wildcard={wildcard}, todo={todo}, process={process}, pid={pid}\nlog={fileName}");
+            logger.Info(
+               "\ntaskkill /F /FI \"IMAGENAME eq ElevationCertificateSlicer.exe\"\ntaskkill /F /FI \"IMAGENAME eq powershell.exe\"\n");
+            //Environment.Exit(0);
+            var skipFiles = new HashSet<string>();
             if (!keepRunning) return;
             for (int i = 0; i < 600; i++)
             {
-               filesToDo = GetDirS3("to-do/", path, new Regex(@".*/" + wildcard.Replace("*", ".*")), todo);
+               filesToDo = GetDirS3("to-do/", path, new Regex(@".*/" + wildcard.Replace("*", ".*")), todo, true, skipKeys: skipFiles);
                filesToDo.Sort();
                logger.Info($"files to do= {filesToDo.Count}");
                if (filesToDo.Count == 0)
@@ -374,6 +413,8 @@ namespace ElevationCertificateSlicer
                   stopWatch.Restart();
                var fi = new FileInfo(pdfFile);
                var stem = Path.GetFileNameWithoutExtension(pdfFile);
+               if (pdfFile.EndsWith(".tif"))
+                  stem = stem + "_tif";
                var dirTiff = Path.Combine(fi.DirectoryName, stem);
                Directory.CreateDirectory(dirTiff);
                var formResults = new ResultsForPrettyJson()
@@ -384,7 +425,7 @@ namespace ElevationCertificateSlicer
                //var target = (FileTarget)LogManager.Configuration.FindTargetByName("logfile2");
                var logName = "logFile.txt";
                targetOriginal.FileName = Path.Combine(dirTiff, logName);
-               formResults.S3FilesToCopy.Add(logName);
+               //formResults.S3FilesToCopy.Add(logName);
                LogManager.ReconfigExistingLoggers();
                try
                {
