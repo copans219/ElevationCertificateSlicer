@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Text.RegularExpressions;
+using System.Threading;
 using System.Threading.Tasks;
 using Leadtools;
 using Leadtools.Codecs;
@@ -17,7 +18,6 @@ using Newtonsoft.Json;
 using System.Diagnostics;
 using System.Security.Permissions;
 using System.Text;
-using System.Threading;
 using Newtonsoft.Json.Linq;
 using NLog;
 using Amazon.S3;
@@ -265,18 +265,65 @@ namespace ElevationCertificateSlicer
 
       private static bool keepRunning = true;
 
-         // <param name="useS3">use todo for source, and then path is scratch</param>
+      static async Task Upload(TransferUtility transferUtility, string src, string dest)
+      {
+         await transferUtility.UploadAsync(src, dest);
+      }
 
-         // <summary>
-         // LEADOcr
-         // </summary>
-         // <param name="path">Either a single PDF or a directory</param>
-         // <param name="timeout">Time a single page can run</param>
-         // <param name="wildcard">Windows file wildcard</param>
-         // <param name="todo">number of files todo for S3 (implies useS3)</param>
-         // <param name="process">process (thread) 1-n</param>
-         // <param name="pid">process id of calling ps1</param>
-      static void Main(string path = CertificateDirString, int timeout = 15, string wildcard = "*", int todo = 0, int process = 1, int pid = 0)
+      static void RandomUpload(string path, int todo)
+      {
+         var rnd = new Random();
+         var pdfFiles = Directory.GetFiles(path, "*.pdf");
+         AmazonS3Config cfg = new AmazonS3Config
+         {
+            RegionEndpoint = Amazon.RegionEndpoint.USEast2 //bucket location
+         };
+         var sb = new StringBuilder();
+         var checkNewFiles = GetDirS3("to-do/", path, new Regex(@".*/.*\.pdf" ), 10000, copyToWorking: false).ToHashSet();
+         //var bucketRegion = RegionEndpoint.GetBySystemName("us-east-2");
+         using (var s3Client = new AmazonS3Client(cfg))
+         using (var transferUtility = new TransferUtility(s3Client))
+         {
+            int done = 0;
+            foreach (var pdf in pdfFiles)
+            {
+               var fi = new FileInfo(pdf);
+               var key = "to-do/" + fi.Name;
+               if(checkNewFiles.Contains(key))
+
+                  continue;
+               Upload(transferUtility, pdf, "form-ocr/to-do").Wait();
+               done++;
+               if (done >= todo)
+                  return;
+               var d = rnd.NextDouble() * rnd.NextDouble() * rnd.NextDouble();
+               if (d < 0.005)
+               {
+                  d = 0;
+                  sb.Append("0\n");
+                  continue;
+               }
+               d *= 30000;
+               var mili = (int)d;
+               sb.Append(mili.ToString() + "\n");
+               logger.Info($"{fi.Name} {mili}");
+               Thread.Sleep(mili);
+            }
+         }
+         logger.Info("\n" + sb.ToString());
+      }
+
+      // <summary>
+      // LEADOcr
+      // </summary>
+      // <param name="path">Either a single PDF or a directory</param>
+      // <param name="timeout">Time a single page can run</param>
+      // <param name="wildcard">Windows file wildcard</param>
+      // <param name="todo">number of files todo for S3 (implies useS3)</param>
+      // <param name="process">process (thread) 1-n</param>
+      // <param name="pid">process id of calling ps1</param>
+      // <param name="mode">S3, local, upload</param>
+      static void Main(string path = CertificateDirString, int timeout = 15, string wildcard = "*", int todo = 0, int process = 1, int pid = 0, string mode = "S3")
       {
          Console.CancelKeyPress += delegate (object sender, ConsoleCancelEventArgs e) {
             e.Cancel = true;
@@ -284,7 +331,21 @@ namespace ElevationCertificateSlicer
          };
          if (!(wildcard.Contains(".pdf") || wildcard.Contains(".tif")))
             wildcard = wildcard + ".(pdf|tif)";
-         var useS3 = todo > 0;
+         var useS3 = mode.ToUpper() == "S3";
+         switch (mode.ToUpper())
+         {
+            case "S3":
+               logger.Info("S3 mode");
+               break;
+            case "LOCAL":
+               logger.Info("Local mode");
+               break;
+            case "UPLOAD":
+               logger.Info("Upload simulation");
+               RandomUpload(path, todo);
+               return;
+
+         }
          //WriteS3().Wait();
 
          int hadForms = 0;
