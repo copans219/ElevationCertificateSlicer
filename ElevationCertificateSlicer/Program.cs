@@ -339,8 +339,8 @@ namespace ElevationCertificateSlicer
 #endif            
             var targetOrg = (FileTarget)LogManager.Configuration.FindTargetByName("logfile");
             var targetBase = Path.GetFileNameWithoutExtension(targetOrg.FileName.ToString());
-
-            var logDir = Path.Combine(path, "log");
+            var yyyymmdd = DateTime.Today.ToString("yyyyMMdd");
+            var logDir = Path.Combine(Directory.GetParent(path).FullName, "log", yyyymmdd);
 
             var newName = Path.Combine(logDir, $"{targetBase}_{process}_{pid}.log");
 
@@ -354,9 +354,10 @@ namespace ElevationCertificateSlicer
             //Environment.Exit(0);
             var skipFiles = new HashSet<string>();
             if (!keepRunning) return;
+            var fileRegex = new Regex(@".*/" + wildcard.Replace("*", ".*"), RegexOptions.IgnoreCase);
             for (int i = 0; i < 600; i++)
             {
-               filesToDo = GetDirS3("to-do/", path, new Regex(@".*/" + wildcard.Replace("*", ".*")), todo, true, skipKeys: skipFiles);
+               filesToDo = GetDirS3("to-do/", path, fileRegex, todo, true, skipKeys: skipFiles);
                filesToDo.Sort();
                logger.Info($"files to do= {filesToDo.Count}");
                if (filesToDo.Count == 0)
@@ -448,6 +449,8 @@ namespace ElevationCertificateSlicer
                   File.WriteAllText(jsonName, json);
 
                   logger.Info($"Writing to {jsonName}, {stopWatch.ElapsedMilliseconds} milliseconds, {stopWatchBig.Elapsed}");
+                  errors = formResults.TimedOutPages.Count + formResults.FieldsWithError;
+                  logger.Info($"Mapped Forms: {formResults.PagesMappedToForm}, timed out {formResults.TimedOutPages}, fields with errors {formResults.FieldsWithError} for {baseName}");
                   if (formResults.PagesMappedToForm > 0)
                   {
                      hadForms++;
@@ -457,8 +460,11 @@ namespace ElevationCertificateSlicer
                   else
                   {
                      noForms++;
+                     if (errors == 0)
+                     {
+                        logger.Info($"NO FORMS (but no errors) for {baseName}");
+                     }
                   }
-                  errors = formResults.TimedOutPages.Count + formResults.FieldsWithError;
                }
                catch (Exception e)
                {

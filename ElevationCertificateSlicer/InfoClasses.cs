@@ -680,7 +680,7 @@ namespace ElevationCertificateSlicer
                // {"ExpiryDate":new Date(1230375600000),"Price":0}
             }
             var childBoxes = allBoxes.Select(x => x.Children.Count == 0).ToArray();
-            logger.Info($"end boxes {childBoxes.Length}");
+            logger.Debug($"end boxes {childBoxes.Length}");
          }
          boxesBySize = new SortedList<long, Box>(new DuplicateKeyComparer<long>());
          var json = File.ReadAllText(boxFile);
@@ -693,11 +693,11 @@ namespace ElevationCertificateSlicer
 
             boxesBySize.Add(b.Size, b);
          }
-         logger.Info("-----------------------------------------------------");
+         logger.Debug("-----------------------------------------------------");
          foreach (var b in boxes)
          {
             b.FindParents(boxesBySize);
-            logger.Info(
+            logger.Debug(
                $"{b} cs:{b.Annotation.CalculateSize()} Parent:{b.Parent?.Index}");
          }
          return boxes;
