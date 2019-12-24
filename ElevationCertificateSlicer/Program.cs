@@ -288,10 +288,13 @@ namespace ElevationCertificateSlicer
             foreach (var pdf in pdfFiles)
             {
                var fi = new FileInfo(pdf);
-               var key = "to-do/" + fi.Name;
-               if(checkNewFiles.Contains(key))
-
+               var key = fi.Name;
+               if (checkNewFiles.Contains(key))
+               {
+                  logger.Info($"already uploaded {key}");
                   continue;
+               }
+
                Upload(transferUtility, pdf, "form-ocr/to-do").Wait();
                done++;
                if (done >= todo)
@@ -299,14 +302,13 @@ namespace ElevationCertificateSlicer
                var d = rnd.NextDouble() * rnd.NextDouble() * rnd.NextDouble();
                if (d < 0.005)
                {
-                  d = 0;
                   sb.Append("0\n");
                   continue;
                }
                d *= 30000;
                var mili = (int)d;
                sb.Append(mili.ToString() + "\n");
-               logger.Info($"{fi.Name} {mili}");
+               logger.Info($"{done, 4}. {fi.Name} {mili}");
                Thread.Sleep(mili);
             }
          }
