@@ -270,42 +270,52 @@ namespace ElevationCertificateSlicer
          await transferUtility.UploadAsync(src, dest);
       }
 
-      static void RandomUpload(string path, int todo)
+      static void RandomUpload(string path, string wildcard, int todo)
       {
          var rnd = new Random();
-         var pdfFiles = Directory.GetFiles(path, "*.pdf");
+         var pdfFiles = Directory.GetFiles(path, wildcard);
          AmazonS3Config cfg = new AmazonS3Config
          {
             RegionEndpoint = Amazon.RegionEndpoint.USEast2 //bucket location
          };
          var sb = new StringBuilder();
-         var checkNewFiles = GetDirS3("to-do/", path, new Regex(@".*/.*\.pdf" ), 10000, copyToWorking: false).ToHashSet();
          //var bucketRegion = RegionEndpoint.GetBySystemName("us-east-2");
          using (var s3Client = new AmazonS3Client(cfg))
          using (var transferUtility = new TransferUtility(s3Client))
          {
+            S3DirectoryInfo directoryToDelete = new S3DirectoryInfo(s3Client, bucketName, "working");
+            directoryToDelete.Delete(true);
+            directoryToDelete = new S3DirectoryInfo(s3Client, bucketName, "to-do");
+            directoryToDelete.Delete(true);
+            directoryToDelete = new S3DirectoryInfo(s3Client, bucketName, "error");
+            directoryToDelete.Delete(true);
+            directoryToDelete = new S3DirectoryInfo(s3Client, bucketName, "completed");
+            directoryToDelete.Delete(true);
+            //var checkNewFiles = GetDirS3("to-do/", path, new Regex(@".*/.*\.pdf"), 10000, copyToWorking: false).ToHashSet();
             int done = 0;
             foreach (var pdf in pdfFiles)
             {
                var fi = new FileInfo(pdf);
                var key = fi.Name;
+               /*
                if (checkNewFiles.Contains(key))
                {
                   logger.Info($"already uploaded {key}");
                   continue;
                }
-
+               */
                Upload(transferUtility, pdf, "form-ocr/to-do").Wait();
                done++;
                if (done >= todo)
                   return;
-               var d = rnd.NextDouble() * rnd.NextDouble() * rnd.NextDouble();
-               if (d < 0.005)
+               var d = Math.Pow(rnd.NextDouble() * rnd.NextDouble(), 1.6);
+               if (d < 0.001)
                {
+                  logger.Info($"{done,4}. {fi.Name} {d} 0");
                   sb.Append("0\n");
                   continue;
                }
-               d *= 30000;
+               d *= 150000;
                var mili = (int)d;
                sb.Append(mili.ToString() + "\n");
                logger.Info($"{done, 4}. {fi.Name} {mili}");
@@ -344,7 +354,7 @@ namespace ElevationCertificateSlicer
                break;
             case "UPLOAD":
                logger.Info("Upload simulation");
-               RandomUpload(path, todo);
+               RandomUpload(path,wildcard, todo);
                return;
 
          }
@@ -513,7 +523,7 @@ namespace ElevationCertificateSlicer
 
                   logger.Info($"Writing to {jsonName}, {stopWatch.ElapsedMilliseconds} milliseconds, {stopWatchBig.Elapsed}");
                   errors = formResults.TimedOutPages.Count + formResults.FieldsWithError;
-                  logger.Info($"Mapped Forms: {formResults.PagesMappedToForm}, timed out {formResults.TimedOutPages}, fields with errors {formResults.FieldsWithError} for {baseName}");
+                  logger.Info($"Mapped Forms: {formResults.PagesMappedToForm}, timed out {formResults.TimedOutPages.Count}, fields with errors {formResults.FieldsWithError} for {baseName}");
                   if (formResults.PagesMappedToForm > 0)
                   {
                      hadForms++;
@@ -542,6 +552,7 @@ namespace ElevationCertificateSlicer
                   {
                      var targetFolderUpper = errors > 0 ? "error/" : "completed/";
                      var targetFolder = targetFolderUpper + stem + "/";
+                     logger.Info($"~{targetFolder}~{stem}~{errors}~{formResults.PagesMappedToForm}~{formResults.FieldsWithError}~");
                      AmazonS3Config cfg = new AmazonS3Config
                      {
                         RegionEndpoint = Amazon.RegionEndpoint.USEast2  //bucket location
