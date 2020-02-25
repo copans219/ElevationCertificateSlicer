@@ -192,7 +192,7 @@ namespace ElevationCertificateSlicer
                               // if it wasn't acquired, it timed out, so can handle that how ever we want
                               if (!mutexAcquired)
                               {
-                                 logger.Info($"Could not acquire a lock to ${obj.Key}");
+                                 logger.Info($"Could not acquire a lock to {obj.Key}");
                                  continue;
                               }
 
@@ -293,6 +293,8 @@ namespace ElevationCertificateSlicer
             directoryToDelete.Delete(true);
             //var checkNewFiles = GetDirS3("to-do/", path, new Regex(@".*/.*\.pdf"), 10000, copyToWorking: false).ToHashSet();
             int done = 0;
+            var expo = 3----+.6;
+            logger.Info($"expo={expo}");
             foreach (var pdf in pdfFiles)
             {
                var fi = new FileInfo(pdf);
@@ -308,14 +310,15 @@ namespace ElevationCertificateSlicer
                done++;
                if (done >= todo)
                   return;
-               var d = Math.Pow(rnd.NextDouble() * rnd.NextDouble(), 1.6);
+               var d = Math.Pow(rnd.NextDouble() * rnd.NextDouble(), expo);
+               
                if (d < 0.001)
                {
                   logger.Info($"{done,4}. {fi.Name} {d} 0");
                   sb.Append("0\n");
                   continue;
                }
-               d *= 150000;
+               d *= 15000;
                var mili = (int)d;
                sb.Append(mili.ToString() + "\n");
                logger.Info($"{done, 4}. {fi.Name} {mili}");
